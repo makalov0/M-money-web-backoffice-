@@ -1,0 +1,1 @@
+export const mySecretKey = "mmoneygg_gg";
