@@ -26,6 +26,38 @@ const normalizeDate = (v: string): string => {
   return v;
 };
 
+// Mapping English keys to Lao headers
+const columnHeadersMap: Record<string, string> = {
+  name: "ຊື່",
+  surname: "ນາມສະກຸນ",
+  msisdn: "ເບີໂທ",
+  emp_id: "ລະຫັດພະນັກງານ",
+  credit_id: "ລະຫັດສິນເຊື່ອ",
+  date_of_borrow: "ວັນທີຢືມ",
+  expiration_date: "ວັນທີໝົດອາຍຸ",
+  amount: "ຈຳນວນເງິນ",
+  month_to_repay: "ເດືອນຊຳລະ",
+  debt: "ຍອດໜີ້",
+  monthly_payment: "ຊຳລະລາຍເດືອນ",
+  remaining: "ຄົງເຫຼືອ",
+  payment_date: "ວັນທີຊຳລະ",
+  paid_amount: "ຈຳນວນທີ່ຈ່າຍ",
+  interest: "ດອກເບ້ຍ",
+  interest_total: "ດອກເບ້ຍລວມ",
+  interest1: "ດອກເບ້ຍ 1",
+  interest2: "ດອກເບ້ຍ 2",
+  interest3: "ດອກເບ້ຍ 3",
+  interest4: "ດອກເບ້ຍ 4",
+  interest5: "ດອກເບ້ຍ 5",
+  interest6: "ດອກເບ້ຍ 6",
+  total_interest: "ດອກເບ້ຍທັງໝົດ",
+};
+
+// Function to get Lao header or fallback to original key
+const getLaoHeader = (key: string): string => {
+  return columnHeadersMap[key] || key;
+};
+
 export default function ReportSalary() {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [employeesAll, setEmployeesAll] = useState<Record<string, unknown>[]>([]);
@@ -125,7 +157,7 @@ export default function ReportSalary() {
     const addSheet = (name: string, rows: Record<string, unknown>[]) => {
       if (!rows.length) return;
       const sheet = workbook.addWorksheet(name);
-      const headers = Object.keys(rows[0]);
+      const headers = Object.keys(rows[0]).map(key => getLaoHeader(key));
       const headerRow = sheet.addRow(headers);
 
       headerRow.eachCell((cell) => {
@@ -179,7 +211,7 @@ export default function ReportSalary() {
                   key={key}
                   className="px-4 py-4 text-center text-sm font-bold text-white lao-font"
                 >
-                  {key}
+                  {getLaoHeader(key)}
                 </th>
               ))}
             </tr>

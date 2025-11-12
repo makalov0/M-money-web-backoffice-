@@ -89,7 +89,7 @@ export default function UpdateXjaidee(): React.ReactElement {
             if (filteredEmployees.length === 0) {
                 await Swal.fire({
                     title: 'ບໍ່ມີຂໍ້ມູນ',
-                    text: 'ບໍ່ມີຂໍ້ມູນໃຫ້ແາ້',
+                    text: 'ບໍ່ມີຂໍ້ມູນໃຫ້ແກ້ໄຂ',
                     icon: 'warning',
                     confirmButtonText: 'ຕົກລົງ'
                 });
@@ -153,7 +153,7 @@ export default function UpdateXjaidee(): React.ReactElement {
             console.error("Error inserting data:", error);
             await Swal.fire({
                 title: 'ຜິດພາດ',
-                text: 'ແາ້ຂໍ້ມູນບໍ່ສຳເລັດ',
+                text: 'ແກ້ຂໍ້ມູນບໍ່ສຳເລັດ',
                 icon: 'error',
                 confirmButtonText: 'ຕົກລົງ'
             });
@@ -363,7 +363,7 @@ export default function UpdateXjaidee(): React.ReactElement {
                                 className="w-full px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 flex items-center justify-center gap-2 lao-font"
                             >
                                 <Database size={20} />
-                                ແາ້ຂໍ້ມູນ
+                                ແກ້ໄຂຂໍ້ມູນ
                             </button>
                         </div>
 

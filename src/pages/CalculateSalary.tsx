@@ -285,9 +285,9 @@ export default function CalculateSalary(): React.ReactElement {
                             </div>
                             <div>
                                 <h1 className="text-3xl font-bold text-gray-800 lao-font">
-                                    ຄິດໄລ່ເງິນເດືອນ Xjaidee
+                                    ຄິດໄລ່ສິນເຊື່ອ Xjaidee
                                 </h1>
-                                <p className="text-gray-600 text-sm lao-font">ລະບົບຄິດໄລ່ເງິນເດືອນ Xjaidee</p>
+                                <p className="text-gray-600 text-sm lao-font">ລະບົບຄິດໄລ່ສິນເຊື່ອ Xjaidee</p>
                             </div>
                         </div>
                     </div>

@@ -126,7 +126,7 @@ export default function Login() {
             <h1 className="text-4xl font-bold text-white lao-font mb-2">
               M-MoneyX
             </h1>
-            <p className="text-red-100 lao-font">ລະບົບຄຸ້ມຄອງການເງິນ</p>
+            <p className="text-red-100 lao-font">ລະບົບເບີ່ງxjaidee</p>
           </div>
 
           {/* Login Card */}
@@ -182,7 +182,7 @@ export default function Login() {
             {/* Footer */}
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-500 lao-font">
-                © 2025 M-MoneyX - ລະບົບຄຸ້ມຄອງສິນເຊື່ອ
+                © 2025 M-MoneyX -ລະບົບເບີ່ງxjaidee
               </p>
             </div>
           </div>

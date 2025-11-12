@@ -228,7 +228,7 @@ export default function Sidebar({ onToggle }: SidebarProps) {
         <SidebarLink
           to="/calculatesalary"
           icon={<Calculator size={22} />}
-          text="ຄິດໄລ່ເງິນເດືອນ"
+          text="ຄິດໄລ່ສິນເຊື່ອ"
           isOpen={isOpen}
           isActive={location.pathname === "/calculatesalary"}
         />
@@ -242,7 +242,7 @@ export default function Sidebar({ onToggle }: SidebarProps) {
         <SidebarLink
           to="/reportsalary"
           icon={<CircleDollarSign size={22} />}
-          text="ລາຍງານເງິນເດືອນ"
+          text="ລາຍງານສິນເຊື່ອ"
           isOpen={isOpen}
           isActive={location.pathname === "/reportsalary"}
         />

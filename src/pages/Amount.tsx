@@ -38,6 +38,17 @@ const PROVINCES = [
   { code: "VIP", name: "ວຽງຈັນ" }
 ];
 
+// Column name mapping from English to Lao
+const COLUMN_MAPPING: Record<string, string> = {
+  "province": "ແຂວງ",
+  "lending": "ຍອດປ່ອຍ",
+  "sup": "ຈຳນວນສັນຍາ",
+  "paid": "ຍອດຊຳລະ",
+  "remaining": "ຍອດຄົງເຫຼືອ",
+  "interest": "ດອກເບ້ຍ",
+  "fee": "ຄ່າທຳນຽມ"
+};
+
 const normalizeDate = (v: string): string => {
   if (!v) return "";
   if (typeof v === "string" && v.includes("/")) {
@@ -51,6 +62,10 @@ const normalizeDate = (v: string): string => {
 const getProvinceName = (code: string): string => {
   const province = PROVINCES.find(p => p.code === code);
   return province ? province.name : code;
+};
+
+const getColumnNameInLao = (key: string): string => {
+  return COLUMN_MAPPING[key.toLowerCase()] || key;
 };
 
 const toRowArray = (res: unknown): Record<string, unknown>[] => {
@@ -122,7 +137,8 @@ export default function AmountAll() {
     if (rowsAll.length === 0) return;
 
     const headers = Object.keys(rowsAll[0]);
-    const headerRow = worksheet.addRow(headers);
+    const laoHeaders = headers.map(h => getColumnNameInLao(h));
+    const headerRow = worksheet.addRow(laoHeaders);
 
     headerRow.eachCell((cell) => {
       cell.font = { name: 'Noto Sans Lao', size: 12, bold: true };
@@ -141,13 +157,16 @@ export default function AmountAll() {
       };
     });
 
-    rowsAll.forEach((r) =>
-      worksheet.addRow(
-        Object.values(r).map((v) =>
-          typeof v === "number" ? v.toLocaleString("de-DE") : v
-        )
-      )
-    );
+    rowsAll.forEach((r) => {
+      const rowData = Object.entries(r).map(([key, v]) => {
+        // Convert province code to Lao name in Excel
+        if (key.toLowerCase() === "province") {
+          return getProvinceName(String(v ?? ""));
+        }
+        return typeof v === "number" ? v.toLocaleString("de-DE") : v;
+      });
+      worksheet.addRow(rowData);
+    });
 
     worksheet.columns.forEach((c) => {
       c.width = Math.min(40, Math.max(12, c.header?.toString().length || 20));
@@ -181,7 +200,7 @@ export default function AmountAll() {
               </div>
               <div>
                 <h1 className="text-3xl font-bold text-gray-800 lao-font">
-                  ລາຍງານເງິນເດືອນ Xjaidee
+                  ລາຍງານສິນເຊື່ອ Xjaidee
                 </h1>
                 <p className="text-gray-600 text-sm lao-font">ລະບົບລາຍງານຕາມແຂວງ</p>
               </div>
@@ -284,7 +303,7 @@ export default function AmountAll() {
                             key={key}
                             className="px-4 py-4 text-center text-sm font-bold text-white lao-font"
                           >
-                            {key}
+                            {getColumnNameInLao(key)}
                           </th>
                         ))}
                       </tr>
