@@ -26,9 +26,9 @@ import {
   Play,
   Gamepad2,
   Ticket,
-  Image,
   Upload,
   MessageSquare,
+  Tag,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -200,7 +200,7 @@ export default function Sidebar({ onToggle }: SidebarProps) {
         <SidebarLink
           to="/customer-chat"
           icon={<MessageSquare size={22} />}
-          text="ສົນທະນາລູກຄ້າ"
+          text="ສົນທະນາກັບລູກຄ້າ"
           isOpen={isOpen}
           isActive={location.pathname === "/customer-chat"}
         />
@@ -217,8 +217,8 @@ export default function Sidebar({ onToggle }: SidebarProps) {
         {/* Promotions/Advertisement Banner */}
         <SidebarLink
           to="/promotions"
-          icon={<Image size={22} />}
-          text="ໂຄສະນາ"
+          icon={<Tag size={22} />}
+          text="ໂປຣໂມຊັ່ນ"
           isOpen={isOpen}
           isActive={location.pathname === "/promotions"}
         />
@@ -373,7 +373,7 @@ export default function Sidebar({ onToggle }: SidebarProps) {
           >
             <div className="flex items-center space-x-3">
               <Tv size={22} className="group-hover:scale-110 transition-transform text-white" />
-              {isOpen && <span className="text-sm font-medium lao-font text-white">ບັນເທີງດິຈິຕອນ</span>}
+              {isOpen && <span className="text-sm font-medium lao-font text-white">ບໍລິການດິຈິຕອນ</span>}
             </div>
             {isOpen && (
               <span className="transition-transform duration-300 text-white">
@@ -452,7 +452,7 @@ export default function Sidebar({ onToggle }: SidebarProps) {
           {isBillPaymentsOpen && isOpen && (
             <div className="ml-4 pl-4 border-l-2 border-[#EF3328]/30 space-y-1 mt-2">
               <SidebarLink
-                to="/bill-payments/electricity"
+                to="/bill/electricity"
                 icon={<Zap size={20} />}
                 text="ໄຟຟ້າ"
                 isOpen={isOpen}

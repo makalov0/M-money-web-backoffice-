@@ -8,12 +8,11 @@ import {
   Cable,
   Tv,
   FileText,
-  Image,
+  Tag,
   TrendingUp,
   Users,
   Activity,
   DollarSign,
-  CheckCircle,
   ArrowRight,
 } from "lucide-react";
 import Sidebar from "../components/layout/Sidebar";
@@ -33,7 +32,7 @@ export default function MainScreen() {
 
   const statsCards: ServiceMetric[] = [
     {
-      title: "ທັງໝົດຜູ້ໃຊ້",
+      title: "ຜູ້ໃຊ້ທັງໝົດ",
       value: "1,245",
       icon: <Users size={32} />,
       color: "text-[#EF3328]",
@@ -53,13 +52,7 @@ export default function MainScreen() {
       color: "text-[#EF3328]",
       bgColor: "bg-red-50",
     },
-    {
-      title: "ອັດຕາສຳເລັດ",
-      value: "98.5%",
-      icon: <CheckCircle size={32} />,
-      color: "text-[#EF3328]",
-      bgColor: "bg-red-50",
-    },
+    
   ];
 
   const services = [
@@ -94,7 +87,7 @@ export default function MainScreen() {
       path: "/ftth/services",
     },
     {
-      label: "ບັນເທີງດິຈິຕອນ",
+      label: "ບໍລິການດິຈິຕອນ",
       icon: <Tv size={32} />,
       color: "from-[#EF3328] to-[#d62a20]",
       path: "/digital-entertainment/wetv",
@@ -106,8 +99,8 @@ export default function MainScreen() {
       path: "/bill-payments/electricity",
     },
     {
-      label: "ໂຄສະນາ",
-      icon: <Image size={32} />,
+      label: "ຈັດການໂປຣໂມຊັນ",
+      icon: <Tag size={32} />,
       color: "from-[#EF3328] to-[#d62a20]",
       path: "/promotions",
     },
@@ -227,7 +220,7 @@ export default function MainScreen() {
             <div className="flex items-center gap-3 mb-6">
               <div className="w-1 h-8 bg-gradient-to-b from-[#EF3328] to-[#d62a20] rounded-full"></div>
               <h2 className="text-2xl font-bold text-[#140F36] lao-font">
-                ກິດຈະກຳຫຼ້າສຸດ
+                ທຸລະກຳຫຼ້າສຸດ
               </h2>
             </div>
             <div className="bg-white rounded-2xl shadow-lg p-6">

@@ -15,8 +15,10 @@ import ESIMService from "./pages/esim-service";
 import RoamingCustomer from "./pages/data-roaming";
 import FTTHServices from "./pages/ftth/services";
 import TicketManagement from "./pages/digital-entertainment/ticket";
-
-
+import FTTHPayment from "./pages/ftth/payment";
+import FailedPayments from "./pages/ftth/failed-payment";
+import FTTHReservation from "./pages/ftth/reservation";
+import ElectricityBillPayment from "./pages/bill/electricity";
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <BrowserRouter>
@@ -100,7 +102,30 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             </Permission>
           }
         />
-        
+        <Route
+          path="/ftth/failed-payment"
+          element={
+            <Permission allowedRoles={["admin", "manager", "user"]}>
+              <FailedPayments />
+            </Permission>
+          }
+        />
+        <Route
+          path="/ftth/payment"
+          element={
+            <Permission allowedRoles={["admin", "manager", "user"]}>
+              <FTTHPayment/>
+            </Permission>
+          }
+        />
+        <Route
+          path="/ftth/reservation"
+          element={
+            <Permission allowedRoles={["admin", "manager", "user"]}>
+              <FTTHReservation/>
+            </Permission>
+          }
+        />
         {/* Ticket Management */}
         <Route
           path="/digital-entertainment/ticket"
@@ -117,6 +142,15 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           element={
             <Permission allowedRoles={["admin", "manager", "user"]}>
               <CustomerChat />
+            </Permission>
+          }
+        />
+         {/* bill */}
+        <Route
+          path="/bill/electricity"
+          element={
+            <Permission allowedRoles={["admin", "manager", "user"]}>
+              <ElectricityBillPayment />
             </Permission>
           }
         />

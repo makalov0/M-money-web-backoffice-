@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Sidebar from "../components/layout/Sidebar";
 import Navbar from "../components/layout/navbar";
 import {
@@ -13,19 +13,15 @@ import {
   Wifi,
   X,
 } from "lucide-react";
-
-interface DataPackage {
-  id: number;
-  name: string;
-  nameEn: string;
-  data: string;
-  price: number;
-  validity: string;
-  speed: string;
-  type: "daily" | "weekly" | "monthly" | "unlimited";
-  status: "active" | "inactive";
-  description: string;
-}
+import { toast } from "react-toastify";
+import {
+  getAllPackages,
+  createPackage,
+  updatePackage,
+  deletePackage,
+  searchPackages,
+  type DataPackage,
+} from "../service/packageService";
 
 export default function DataPackages() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -33,69 +29,8 @@ export default function DataPackages() {
   const [filterType, setFilterType] = useState<string>("all");
   const [showModal, setShowModal] = useState(false);
   const [editingPackage, setEditingPackage] = useState<DataPackage | null>(null);
-
-  const [packages, setPackages] = useState<DataPackage[]>([
-    {
-      id: 1,
-      name: "ແພັກເກັດລາຍວັນ",
-      nameEn: "Daily Package",
-      data: "5GB",
-      price: 10000,
-      validity: "1 ວັນ",
-      speed: "4G/5G",
-      type: "daily",
-      status: "active",
-      description: "ແພັກເກັດອິນເຕີເນັດລາຍວັນ 5GB",
-    },
-    {
-      id: 2,
-      name: "ແພັກເກັດອາທິດ",
-      nameEn: "Weekly Package",
-      data: "15GB",
-      price: 30000,
-      validity: "7 ວັນ",
-      speed: "4G/5G",
-      type: "weekly",
-      status: "active",
-      description: "ແພັກເກັດອິນເຕີເນັດລາຍອາທິດ 15GB",
-    },
-    {
-      id: 3,
-      name: "ແພັກເກັດເດືອນ",
-      nameEn: "Monthly Package",
-      data: "50GB",
-      price: 99000,
-      validity: "30 ວັນ",
-      speed: "4G/5G",
-      type: "monthly",
-      status: "active",
-      description: "ແພັກເກັດອິນເຕີເນັດລາຍເດືອນ 50GB",
-    },
-    {
-      id: 4,
-      name: "ແພັກເກັດ Premium",
-      nameEn: "Premium Package",
-      data: "100GB",
-      price: 149000,
-      validity: "30 ວັນ",
-      speed: "4G/5G",
-      type: "monthly",
-      status: "active",
-      description: "ແພັກເກັດອິນເຕີເນັດ Premium 100GB",
-    },
-    {
-      id: 5,
-      name: "ແພັກເກັດ Unlimited",
-      nameEn: "Unlimited Package",
-      data: "ບໍ່ຈຳກັດ",
-      price: 199000,
-      validity: "30 ວັນ",
-      speed: "4G/5G",
-      type: "unlimited",
-      status: "active",
-      description: "ແພັກເກັດອິນເຕີເນັດບໍ່ຈຳກັດ",
-    },
-  ]);
+  const [packages, setPackages] = useState<DataPackage[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [formData, setFormData] = useState<Partial<DataPackage>>({
     name: "",
@@ -109,13 +44,55 @@ export default function DataPackages() {
     description: "",
   });
 
-  const filteredPackages = packages.filter((pkg) => {
-    const matchesSearch =
-      pkg.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      pkg.nameEn.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filterType === "all" || pkg.type === filterType;
-    return matchesSearch && matchesFilter;
-  });
+  // Fetch packages on mount
+  useEffect(() => {
+    fetchPackages();
+  }, []);
+
+  const fetchPackages = async () => {
+    try {
+      setLoading(true);
+      const data = await getAllPackages();
+      setPackages(data);
+    } catch (error: unknown) {
+      // Changed any to unknown and added type narrowing
+      const message = error instanceof Error ? error.message : "Failed to load packages";
+      toast.error(message);
+      console.error("Fetch packages error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Search with debounce
+  useEffect(() => {
+    const delayDebounce = setTimeout(() => {
+      if (searchTerm || filterType !== "all") {
+        handleSearch();
+      } else {
+        fetchPackages();
+      }
+    }, 500);
+
+    return () => clearTimeout(delayDebounce);
+  }, [searchTerm, filterType]);
+
+  const handleSearch = async () => {
+    try {
+      setLoading(true);
+      const data = await searchPackages(searchTerm, filterType);
+      setPackages(data);
+    } catch (error: unknown) {
+      // Changed any to unknown and added type narrowing
+      const message = error instanceof Error ? error.message : "Search failed";
+      toast.error(message);
+      console.error("Search error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredPackages = packages;
 
   const handleAddPackage = () => {
     setEditingPackage(null);
@@ -139,28 +116,43 @@ export default function DataPackages() {
     setShowModal(true);
   };
 
-  const handleDeletePackage = (id: number) => {
+  const handleDeletePackage = async (id: number) => {
     if (window.confirm("ທ່ານແນ່ໃຈບໍ່ວ່າຕ້ອງການລຶບແພັກເກັດນີ້?")) {
-      setPackages(packages.filter((pkg) => pkg.id !== id));
+      try {
+        await deletePackage(id);
+        toast.success("ລຶບແພັກເກັດສຳເລັດ!");
+        fetchPackages();
+      } catch (error: unknown) {
+        // Changed any to unknown and added type narrowing
+        const message = error instanceof Error ? error.message : "Failed to delete package";
+        toast.error(message);
+        console.error("Delete error:", error);
+      }
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingPackage) {
-      setPackages(
-        packages.map((pkg) =>
-          pkg.id === editingPackage.id ? { ...pkg, ...formData } : pkg
-        )
-      );
-    } else {
-      const newPackage: DataPackage = {
-        id: packages.length + 1,
-        ...formData,
-      } as DataPackage;
-      setPackages([...packages, newPackage]);
+    
+    try {
+      if (editingPackage && editingPackage.id) {
+        // Update existing package
+        await updatePackage(editingPackage.id, formData);
+        toast.success("ອັບເດດແພັກເກັດສຳເລັດ!");
+      } else {
+        // Create new package
+        await createPackage(formData as Omit<DataPackage, 'id'>);
+        toast.success("ເພີ່ມແພັກເກັດສຳເລັດ!");
+      }
+      
+      setShowModal(false);
+      fetchPackages();
+    } catch (error: unknown) {
+      // Changed any to unknown and added type narrowing
+      const message = error instanceof Error ? error.message : "Operation failed";
+      toast.error(message);
+      console.error("Submit error:", error);
     }
-    setShowModal(false);
   };
 
   const getTypeColor = (type: string) => {
@@ -313,10 +305,12 @@ export default function DataPackages() {
                 <div>
                   <p className="text-gray-600 text-sm lao-font">ລາຄາສະເລ່ຍ</p>
                   <p className="text-2xl font-bold text-[#140F36] lao-font">
-                    {(
-                      packages.reduce((sum, p) => sum + p.price, 0) /
-                      packages.length
-                    ).toLocaleString()}{" "}
+                    {packages.length > 0
+                      ? (
+                          packages.reduce((sum, p) => sum + p.price, 0) /
+                          packages.length
+                        ).toLocaleString()
+                      : 0}{" "}
                     ກີບ
                   </p>
                 </div>
@@ -327,80 +321,93 @@ export default function DataPackages() {
             </div>
           </div>
 
-          {/* Packages Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredPackages.map((pkg) => (
-              <div
-                key={pkg.id}
-                className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden"
-              >
-                <div className="bg-gradient-to-r from-[#EF3328] to-[#d62a20] p-6 text-white">
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <h3 className="text-xl font-bold lao-font mb-1">
-                        {pkg.name}
-                      </h3>
-                      <p className="text-white/80 text-sm">{pkg.nameEn}</p>
-                    </div>
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-semibold ${getTypeColor(
-                        pkg.type
-                      )} bg-white lao-font`}
-                    >
-                      {getTypeLabel(pkg.type)}
-                    </span>
-                  </div>
-                  <div className="text-3xl font-bold lao-font">{pkg.data}</div>
+          {/* Loading State */}
+          {loading ? (
+            <div className="flex justify-center items-center py-20">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#EF3328]"></div>
+            </div>
+          ) : (
+            /* Packages Grid */
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredPackages.length === 0 ? (
+                <div className="col-span-full text-center py-20">
+                  <p className="text-gray-500 text-lg lao-font">ບໍ່ພົບຂໍ້ມູນແພັກເກັດ</p>
                 </div>
+              ) : (
+                filteredPackages.map((pkg) => (
+                  <div
+                    key={pkg.id}
+                    className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden"
+                  >
+                    <div className="bg-gradient-to-r from-[#EF3328] to-[#d62a20] p-6 text-white">
+                      <div className="flex items-start justify-between mb-4">
+                        <div>
+                          <h3 className="text-xl font-bold lao-font mb-1">
+                            {pkg.name}
+                          </h3>
+                          <p className="text-white/80 text-sm">{pkg.nameEn}</p>
+                        </div>
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-semibold ${getTypeColor(
+                            pkg.type
+                          )} bg-white lao-font`}
+                        >
+                          {getTypeLabel(pkg.type)}
+                        </span>
+                      </div>
+                      <div className="text-3xl font-bold lao-font">{pkg.data}</div>
+                    </div>
 
-                <div className="p-6">
-                  <div className="space-y-3 mb-6">
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-600 lao-font">ລາຄາ:</span>
-                      <span className="font-bold text-[#EF3328] lao-font">
-                        {pkg.price.toLocaleString()} ກີບ
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-600 lao-font">
-                        ໄລຍະເວລາ:
-                      </span>
-                      <span className="font-semibold text-[#140F36] lao-font">
-                        {pkg.validity}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-600 lao-font">ຄວາມໄວ:</span>
-                      <span className="font-semibold text-[#140F36] lao-font">
-                        {pkg.speed}
-                      </span>
+                    <div className="p-6">
+                      <div className="space-y-3 mb-6">
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-600 lao-font">ລາຄາ:</span>
+                          <span className="font-bold text-[#EF3328] lao-font">
+                            {pkg.price.toLocaleString()} ກີບ
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-600 lao-font">
+                            ໄລຍະເວລາ:
+                          </span>
+                          <span className="font-semibold text-[#140F36] lao-font">
+                            {pkg.validity}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-600 lao-font">ຄວາມໄວ:</span>
+                          <span className="font-semibold text-[#140F36] lao-font">
+                            {pkg.speed}
+                          </span>
+                        </div>
+                      </div>
+
+                      <p className="text-sm text-gray-600 mb-4 lao-font">
+                        {pkg.description}
+                      </p>
+
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleEditPackage(pkg)}
+                          className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center gap-2 lao-font"
+                        >
+                          <Edit2 size={16} />
+                          <span>ແກ້ໄຂ</span>
+                        </button>
+                        <button
+                          onClick={() => pkg.id && handleDeletePackage(pkg.id)}
+                          className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center justify-center gap-2 lao-font"
+                        >
+                          <Trash2 size={16} />
+                          <span>ລຶບ</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
-
-                  <p className="text-sm text-gray-600 mb-4 lao-font">
-                    {pkg.description}
-                  </p>
-
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleEditPackage(pkg)}
-                      className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center gap-2 lao-font"
-                    >
-                      <Edit2 size={16} />
-                      <span>ແກ້ໄຂ</span>
-                    </button>
-                    <button
-                      onClick={() => handleDeletePackage(pkg.id)}
-                      className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center justify-center gap-2 lao-font"
-                    >
-                      <Trash2 size={16} />
-                      <span>ລຶບ</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+                ))
+              )}
+            </div>
+          )}
         </div>
       </div>
 

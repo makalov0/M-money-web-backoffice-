@@ -186,7 +186,7 @@ export default function CustomerChat() {
         style={{ marginLeft: sidebarOpen ? "256px" : "80px" }}
       >
         {/* Navbar */}
-        <Navbar title="ສົນທະນາລູກຄ້າ" />
+        <Navbar title="ສົນທະນາກັບລູກຄ້າ" />
 
         {/* Chat Container */}
         <div className="p-8">
