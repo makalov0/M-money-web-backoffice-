@@ -1,23 +1,32 @@
 import React, { useState } from "react";
-import { Lock, Mail, Loader2 } from "lucide-react";
-import * as CryptoJS from "crypto-js";
+import { Lock, User, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { loginApi } from "../../service/authservice";
-import { mySecretKey } from "../../service/myConst";
+
+type LoginResponse = {
+  success?: boolean;
+  token?: string;
+  profile?: {
+    emp_id?: string;
+    role?: "ADMIN" | "EMPLOYEE";
+    email?: string;
+  };
+  message?: string;
+};
 
 export default function Login(): React.ReactElement {
-  const [username, setUsername] = useState<string>("");
-  const [password, setPassword] = useState<string>("");
+  const [empId, setEmpId] = useState<string>("");
+  const [phone, setPhone] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (!username || !password) {
-      toast.error("ກະລຸນາປ້ອນຊື່ຜູ້ໃຊ້ ແລະ ລະຫັດຜ່ານ", {
+    if (!empId || !phone) {
+      toast.error("ກະລຸນາປ້ອນ ລະຫັດພະນັກງານ ແລະ ເບີໂທ", {
         position: "top-right",
         autoClose: 3000,
       });
@@ -26,61 +35,42 @@ export default function Login(): React.ReactElement {
 
     setLoading(true);
 
-    // Admin bypass (kept for convenience)
-    if (username === "admin" && password === "admin") {
-      toast.success("ເຂົ້າສູ່ລະບົບສຳເລັດ! (Admin Mode)", {
-        position: "top-right",
-        autoClose: 2000,
-      });
-
-      const encryptedRole = CryptoJS.AES.encrypt("admin", mySecretKey).toString();
-      localStorage.setItem("username", "admin");
-      localStorage.setItem("profile", "admin@moneyx.com");
-      localStorage.setItem("Role", encryptedRole);
-
-      setTimeout(() => navigate("/mainscreen"), 1500);
-      setLoading(false);
-      return;
-    }
-
     try {
       const response = (await loginApi({
-        username,
-        password,
-      })) as { profile?: { role?: string; email?: string } };
+        emp_id: empId,
+        phone: phone,
+      })) as LoginResponse;
+
+      if (!response?.token || !response?.profile?.role) {
+        toast.error(response?.message || "ບໍ່ສາມາດເຂົ້າລະບົບໄດ້", {
+          position: "top-right",
+          autoClose: 3000,
+        });
+        return;
+      }
+
+      // ✅ store auth info
+      localStorage.setItem("token", response.token);
+      localStorage.setItem("empId", response.profile.emp_id || empId);
+      localStorage.setItem("role", response.profile.role);
+      if (response.profile.email) {
+        localStorage.setItem("email", response.profile.email);
+      }
 
       toast.success("ເຂົ້າສູ່ລະບົບສຳເລັດ!", {
         position: "top-right",
         autoClose: 2000,
       });
 
-      const role = response?.profile?.role ?? "";
-      const email = response?.profile?.email ?? "";
-
-      if (!role || !email) {
-        toast.error("ຂໍ້ຜິດພາດ: ບໍ່ສາມາດດັດແປງຂໍ້ມູນຜູໃຊ້", {
-          position: "top-right",
-          autoClose: 3000,
-        });
-        setLoading(false);
-        return;
-      }
-
-      const encryptedRole = CryptoJS.AES.encrypt(role, mySecretKey).toString();
-      localStorage.setItem("username", username);
-      localStorage.setItem("profile", email);
-      localStorage.setItem("Role", encryptedRole);
-
-      setTimeout(() => navigate("/mainscreen"), 1500);
+      setTimeout(() => navigate("/mainscreen"), 800);
     } catch (err: unknown) {
-      const defaultMsg = "ເກີດຂໍ້ຜິດພາດໃນການເຂົ້າສູ່ລະບົບ";
-      let msg = defaultMsg;
+      let msg = "ເກີດຂໍ້ຜິດພາດ";
 
       if (err instanceof Error) {
-        msg = err.message || defaultMsg;
+        msg = err.message;
       } else if (typeof err === "object" && err !== null) {
-        const axiosLike = err as { response?: { data?: { message?: string } } };
-        msg = axiosLike.response?.data?.message ?? defaultMsg;
+        const apiErr = err as { message?: string; data?: { message?: string } };
+        msg = apiErr.data?.message || apiErr.message || msg;
       }
 
       toast.error(`ຂໍ້ຜິດພາດ: ${msg}`, {
@@ -101,71 +91,61 @@ export default function Login(): React.ReactElement {
       `}</style>
 
       <ToastContainer />
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#140F36] via-[#1a1447] to-[#0a0820] p-4 relative overflow-hidden">
-        {/* Background logo watermark */}
-        <div 
-          className="absolute inset-0 bg-center bg-no-repeat opacity-5"
-          style={{
-            backgroundImage: 'url(/logo.jpg)',
-            backgroundSize: '50%',
-          }}
-        ></div>
-        
-        {/* Background decorative elements */}
-        <div className="absolute top-0 left-0 w-96 h-96 bg-[#EF3328]/10 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-[#EF3328]/10 rounded-full blur-3xl"></div>
-        
-        {/* White decorative elements */}
-        <div className="absolute top-20 right-20 w-32 h-32 bg-white/5 rounded-full blur-2xl"></div>
-        <div className="absolute bottom-20 left-20 w-40 h-40 bg-white/5 rounded-full blur-2xl"></div>
-        <div className="absolute top-1/2 left-10 w-24 h-24 bg-white/5 rounded-full blur-xl"></div>
-        <div className="absolute top-1/3 right-1/4 w-20 h-20 bg-white/5 rounded-full blur-xl"></div>
 
-        <div className="w-full max-w-md relative z-10">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#140F36] via-[#1a1447] to-[#0a0820] p-4">
+        <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-[#EF3328] to-[#d62a20] rounded-2xl shadow-lg mb-4">
               <span className="text-3xl font-bold text-white">M</span>
             </div>
-            <h1 className="text-4xl font-bold text-white lao-font mb-2">M-Money Web Management</h1>
-            <p className="text-[#454350] lao-font">ລະບົບຈັດການເວັບ M-Money</p>
+            <h1 className="text-3xl font-bold text-white lao-font mb-1">
+              M-Money Web Management
+            </h1>
+            <p className="text-gray-400 lao-font">
+              ລະບົບຈັດການສຳລ
+            </p>
           </div>
 
           <div className="bg-white/10 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border border-white/20">
-            <h2 className="text-2xl font-bold text-white mb-6 text-center lao-font">ເຂົ້າສູ່ລະບົບ</h2>
+            <h2 className="text-xl font-bold text-white mb-6 text-center lao-font">
+              ເຂົ້າສູ່ລະບົບ
+            </h2>
 
             <form className="space-y-5" onSubmit={handleLogin}>
-              <div className="relative group">
-                <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-[#EF3328] transition-colors" size={20} />
+              {/* emp_id */}
+              <div className="relative">
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                 <input
                   type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="ຊື່ຜູ້ໃຊ້"
+                  value={empId}
+                  onChange={(e) => setEmpId(e.target.value)}
+                  placeholder="ລະຫັດພະນັກງານ"
                   disabled={loading}
-                  className="w-full pl-12 pr-4 py-3 border-2 border-white/20 rounded-xl focus:outline-none focus:border-[#EF3328] transition-colors bg-white/5 hover:bg-white/10 disabled:opacity-50 lao-font text-white placeholder:text-gray-400"
+                  className="w-full pl-12 pr-4 py-3 rounded-xl bg-white/5 border border-white/20 text-white placeholder-gray-400 focus:outline-none focus:border-[#EF3328] lao-font"
                 />
               </div>
 
-              <div className="relative group">
-                <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-[#EF3328] transition-colors" size={20} />
+              {/* phone */}
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                 <input
                   type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="ລະຫັດຜ່ານ"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="ເບີໂທ"
                   disabled={loading}
-                  className="w-full pl-12 pr-4 py-3 border-2 border-white/20 rounded-xl focus:outline-none focus:border-[#EF3328] transition-colors bg-white/5 hover:bg-white/10 disabled:opacity-50 lao-font text-white placeholder:text-gray-400"
+                  className="w-full pl-12 pr-4 py-3 rounded-xl bg-white/5 border border-white/20 text-white placeholder-gray-400 focus:outline-none focus:border-[#EF3328] lao-font"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-gradient-to-r from-[#EF3328] to-[#d62a20] text-white py-3 rounded-xl font-bold hover:shadow-lg transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2 lao-font mt-6"
+                className="w-full bg-gradient-to-r from-[#EF3328] to-[#d62a20] text-white py-3 rounded-xl font-bold transition-all hover:scale-105 disabled:opacity-50 flex items-center justify-center gap-2 lao-font"
               >
                 {loading ? (
                   <>
-                    <Loader2 size={20} className="animate-spin" />
+                    <Loader2 className="animate-spin" size={20} />
                     ກຳລັງເຂົ້າສູ່ລະບົບ...
                   </>
                 ) : (
@@ -174,9 +154,9 @@ export default function Login(): React.ReactElement {
               </button>
             </form>
 
-            <div className="mt-6 text-center">
-              <p className="text-sm text-gray-400 lao-font">© 2025 M-Money Web Management</p>
-            </div>
+            <p className="mt-6 text-center text-sm text-gray-400 lao-font">
+              © 2025 M-Money Web Management
+            </p>
           </div>
         </div>
       </div>

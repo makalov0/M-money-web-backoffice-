@@ -1,33 +1,55 @@
-import mysql from 'mysql2/promise';
-import dotenv from 'dotenv';
+import pkg from "pg";
+const { Pool } = pkg;
 
-dotenv.config();
+const pool = new Pool({
+  host: process.env.DB_HOST || "172.28.12.205",
+  user: process.env.DB_USER || "Souksan",
+  password: process.env.DB_PASSWORD || "Lmm@A2025!",
+  database: process.env.DB_NAME || "WebApp",
+  port: Number(process.env.DB_PORT || 5432),
 
-// Create connection pool
-const pool = mysql.createPool({
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'm-money web',
-  port: process.env.DB_PORT || 3306,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-  enableKeepAlive: true,
-  keepAliveInitialDelay: 0
+  // Increase timeouts and add retry logic
+  connectionTimeoutMillis: 30000,  // 30s
+  idleTimeoutMillis: 30000,        // 30s
+  query_timeout: 30000,            // 30s
+
+  // Connection pool settings
+  max: 20,                         // Maximum connections
+  min: 2,                          // Minimum connections
+
+  // Helps with firewall/NAT resets
+  keepAlive: true,
+  keepAliveInitialDelayMillis: 10000,
+
+  // Retry on connection errors
+  retryOnExit: true,
 });
 
-// Test connection on startup
-(async () => {
+pool.on("error", (err) => {
+  console.error("❌ PG Pool error:", err);
+  // Don't exit process, let the pool handle reconnection
+});
+
+pool.on("connect", (client) => {
+  console.log("✅ New client connected to database");
+});
+
+pool.on("remove", (client) => {
+  console.log("🔌 Client removed from pool");
+});
+
+// Test database connection
+export const testConnection = async () => {
   try {
-    const connection = await pool.getConnection();
-    console.log('✅ Database connected successfully');
-    console.log(`📊 Database: ${process.env.DB_NAME || 'm_money_web'}`);
-    connection.release();
+    const client = await pool.connect();
+    await client.query('SELECT 1');
+    client.release();
+    console.log("✅ Database connection successful");
+    return true;
   } catch (err) {
-    console.error('❌ Database connection failed:', err.message);
-    process.exit(1); // Exit if database connection fails
+    console.error("❌ Database connection failed:", err.message);
+    return false;
   }
-})();
+};
 
 export default pool;

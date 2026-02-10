@@ -1,169 +1,281 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { useState } from "react";
+/* eslint-disable react-hooks/exhaustive-deps */
+import { useState, useEffect } from "react";
 import Sidebar from "../components/layout/Sidebar";
 import Navbar from "../components/layout/navbar";
 import {
   Gift,
   Search,
   Plus,
-  Edit,
+  Edit2,
   Trash2,
-  Eye,
-  Calendar,
-  Percent,
-  Tag,
-  TrendingUp,
   Download,
   CheckCircle,
   Clock,
   XCircle,
   AlertCircle,
+  X,
+  ChevronUp,
+  ChevronDown,
+  TrendingUp,
 } from "lucide-react";
+import { toast } from "react-toastify";
+import {
+  getAllPromotions,
+  createPromotion,
+  updatePromotion,
+  deletePromotion,
+  searchPromotions,
+  getPromotionStatistics,
+  type Promotion,
+  type PromotionStatistics,
+} from "../service/promotionApi";
 
-interface Promotion {
-  id: number;
-  code: string;
-  name: string;
-  description: string;
-  type: "percentage" | "fixed" | "free_service";
-  discountValue: number;
-  minAmount: number;
-  maxDiscount?: number;
-  startDate: string;
-  endDate: string;
-  usageLimit: number;
-  usedCount: number;
-  status: "active" | "scheduled" | "expired" | "inactive";
-  applicableServices: string[];
-  createdBy: string;
-  createdDate: string;
-}
+// Helper function to get today's date in YYYY-MM-DD format
+const getTodayDate = () => {
+  const today = new Date();
+  return today.toISOString().split('T')[0];
+};
+
+// Helper function to get date 30 days from now in YYYY-MM-DD format
+const getFutureDate = (days: number = 30) => {
+  const future = new Date();
+  future.setDate(future.getDate() + days);
+  return future.toISOString().split('T')[0];
+};
 
 export default function PromotionsManagement() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterType, setFilterType] = useState<string>("all");
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [selectedPromo, setSelectedPromo] = useState<Promotion | null>(null);
+  const [filterStatus, setFilterStatus] = useState<string>("all");
 
-  const [promotions, setPromotions] = useState<Promotion[]>([
-    {
-      id: 1,
-      code: "NEWYEAR2025",
-      name: "ສະຫຼອງປີໃໝ່ 2025",
-      description: "ຮັບສ່ວນຫຼຸດ 20% ສຳລັບການເຕີມເງິນມືຖືທຸກເຄືອຂ່າຍ",
-      type: "percentage",
-      discountValue: 20,
-      minAmount: 50000,
-      maxDiscount: 100000,
-      startDate: "2025-01-01",
-      endDate: "2025-01-31",
-      usageLimit: 1000,
-      usedCount: 456,
-      status: "active",
-      applicableServices: ["ເຕີມເງິນມືຖື", "eSIM"],
-      createdBy: "ທ້າວ ບຸນມີ",
-      createdDate: "2024-12-15",
-    },
-    {
-      id: 2,
-      code: "TOPUP50K",
-      name: "ເຕີມ 50K ຟຣີ 10K",
-      description: "ເຕີມເງິນ 50,000 ກີບຂື້ນໄປ ຮັບເງິນຄືນ 10,000 ກີບ",
-      type: "fixed",
-      discountValue: 10000,
-      minAmount: 50000,
-      startDate: "2025-11-01",
-      endDate: "2025-11-30",
-      usageLimit: 500,
-      usedCount: 234,
-      status: "active",
-      applicableServices: ["ເຕີມເງິນມືຖື"],
-      createdBy: "ນາງ ສົມຈິດ",
-      createdDate: "2024-10-25",
-    },
-    {
-      id: 3,
-      code: "ESIMFREE",
-      name: "eSIM ຟຣີ ສຳລັບລູກຄ້າໃໝ່",
-      description: "ລູກຄ້າໃໝ່ຊື້ eSIM ຄັ້ງທຳອິດ ຟຣີ 1GB",
-      type: "free_service",
-      discountValue: 0,
-      minAmount: 0,
-      startDate: "2025-11-15",
-      endDate: "2025-12-31",
-      usageLimit: 200,
-      usedCount: 89,
-      status: "active",
-      applicableServices: ["eSIM"],
-      createdBy: "ທ້າວ ວິໄລ",
-      createdDate: "2024-11-10",
-    },
-    {
-      id: 4,
-      code: "WEEKEND30",
-      name: "ສຸດສັບປະດາ ຫຼຸດ 30%",
-      description: "ທຸກວันເສົາ-ອາທິດ ຮັບສ່ວນຫຼຸດ 30%",
-      type: "percentage",
-      discountValue: 30,
-      minAmount: 30000,
-      maxDiscount: 50000,
-      startDate: "2025-12-01",
-      endDate: "2025-12-31",
-      usageLimit: 800,
-      usedCount: 0,
-      status: "scheduled",
-      applicableServices: ["ເຕີມເງິນມືຖື", "eSIM", "ຊຳລະບິນ"],
-      createdBy: "ນາງ ແສງດາວ",
-      createdDate: "2024-11-20",
-    },
-    {
-      id: 5,
-      code: "SUMMER2024",
-      name: "ສະຫຼອງລະດູຮ້ອນ 2024",
-      description: "ຮັບສ່ວນຫຼຸດ 15% ທຸກບໍລິການ",
-      type: "percentage",
-      discountValue: 15,
-      minAmount: 40000,
-      maxDiscount: 80000,
-      startDate: "2024-06-01",
-      endDate: "2024-08-31",
-      usageLimit: 1500,
-      usedCount: 1500,
-      status: "expired",
-      applicableServices: ["ເຕີມເງິນມືຖື", "eSIM", "ຊຳລະບິນ"],
-      createdBy: "ທ້າວ ພູມໃຈ",
-      createdDate: "2024-05-15",
-    },
-    {
-      id: 6,
-      code: "VIP100",
-      name: "ສ່ວນຫຼຸດສະມາຊິກ VIP",
-      description: "ສະມາຊິກ VIP ຮັບສ່ວນຫຼຸດ 100,000 ກີບ",
-      type: "fixed",
-      discountValue: 100000,
-      minAmount: 500000,
-      startDate: "2025-11-01",
-      endDate: "2025-12-31",
-      usageLimit: 50,
-      usedCount: 12,
-      status: "active",
-      applicableServices: ["eSIM"],
-      createdBy: "ທ້າວ ບຸນມີ",
-      createdDate: "2024-10-30",
-    },
-  ]);
+  const [showModal, setShowModal] = useState(false);
+  const [editingPromo, setEditingPromo] = useState<Promotion | null>(null);
 
-  const filteredPromotions = promotions.filter((promo) => {
-    const matchesSearch =
-      promo.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      promo.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      promo.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === "all" || promo.status === filterStatus;
-    const matchesType = filterType === "all" || promo.type === filterType;
-    return matchesSearch && matchesStatus && matchesType;
+  const [promotions, setPromotions] = useState<Promotion[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const [sortField, setSortField] = useState<keyof Promotion | null>(null);
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+
+  const [statistics, setStatistics] = useState<PromotionStatistics>({
+    total: 0,
+    active: 0,
+    scheduled: 0,
+    byType: [],
+    totalUsage: 0,
+    avgDiscount: 0,
   });
+
+  // Initial form data with proper date format
+  const getInitialFormData = (): Partial<Promotion> => ({
+    code: "",
+    name: "",
+    description: "",
+    type: "percentage",
+    discountValue: 0,
+    minAmount: 0,
+    maxDiscount: undefined,
+    startDate: getTodayDate(),
+    endDate: getFutureDate(30),
+    usageLimit: 100,
+    status: "scheduled",
+    applicableServices: [],
+    createdBy: "admin",
+  });
+
+  const [formData, setFormData] = useState<Partial<Promotion>>(getInitialFormData());
+
+  useEffect(() => {
+    fetchPromotions();
+    fetchStatistics();
+  }, []);
+
+  useEffect(() => {
+    const delayDebounce = setTimeout(() => {
+      if (searchTerm || filterType !== "all" || filterStatus !== "all") {
+        handleSearch();
+      } else {
+        fetchPromotions();
+      }
+    }, 500);
+
+    return () => clearTimeout(delayDebounce);
+  }, [searchTerm, filterType, filterStatus]);
+
+  const getErrorMessage = (error: unknown, fallback: string) => {
+    if (typeof error === "object" && error && "message" in error) {
+      return String((error as Record<string, unknown>).message || fallback);
+    }
+    if (error instanceof Error) return error.message || fallback;
+    return fallback;
+  };
+
+  const fetchPromotions = async () => {
+    try {
+      setLoading(true);
+      const data = await getAllPromotions();
+      setPromotions(data);
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Failed to load promotions"));
+      console.error("Fetch promotions error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchStatistics = async () => {
+    try {
+      const stats = await getPromotionStatistics();
+      setStatistics(stats);
+    } catch (error) {
+      console.error("Fetch statistics error:", error);
+    }
+  };
+
+  const handleSearch = async () => {
+    try {
+      setLoading(true);
+      const data = await searchPromotions(searchTerm, filterType, filterStatus);
+      setPromotions(data);
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Search failed"));
+      console.error("Search error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSort = (field: keyof Promotion) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  const sortedPromotions = [...promotions].sort((a, b) => {
+    if (!sortField) return 0;
+    const aValue = a[sortField];
+    const bValue = b[sortField];
+    if (aValue === undefined || bValue === undefined) return 0;
+
+    if (typeof aValue === "string" && typeof bValue === "string") {
+      return sortDirection === "asc" ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
+    }
+    if (typeof aValue === "number" && typeof bValue === "number") {
+      return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
+    }
+    return 0;
+  });
+
+  const handleAddPromotion = () => {
+    setEditingPromo(null);
+    setFormData(getInitialFormData());
+    setShowModal(true);
+  };
+
+  const handleEditPromotion = (promo: Promotion) => {
+    setEditingPromo(promo);
+    setFormData({
+      ...promo,
+      applicableServices: promo.applicableServices || [],
+      createdBy: promo.createdBy || "admin",
+    });
+    setShowModal(true);
+  };
+
+  const handleDeletePromotion = async (id: number) => {
+    if (!window.confirm("ທ່ານຕ້ອງການລົບໂປຣໂມຊັນນີ້ແທ້ບໍ່?")) return;
+
+    try {
+      await deletePromotion(id);
+      toast.success("ລົບໂປຣໂມຊັນສຳເລັດ");
+      fetchPromotions();
+      fetchStatistics();
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Failed to delete promotion"));
+      console.error("Delete error:", error);
+    }
+  };
+
+  const validateForm = () => {
+    if (!formData.code?.trim()) return "Please enter code";
+    if (!formData.name?.trim()) return "Please enter name";
+    if (!formData.description?.trim()) return "Please enter description";
+    if (!formData.type) return "Please select type";
+    if (!formData.startDate) return "Please select start date";
+    if (!formData.endDate) return "Please select end date";
+    
+    // Validate date format (YYYY-MM-DD)
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(formData.startDate)) return "Invalid start date format (use YYYY-MM-DD)";
+    if (!dateRegex.test(formData.endDate)) return "Invalid end date format (use YYYY-MM-DD)";
+    
+    // Check if end date is after start date
+    if (new Date(formData.endDate) < new Date(formData.startDate)) {
+      return "End date must be after start date";
+    }
+    
+    if ((formData.discountValue ?? 0) <= 0) return "Discount must be greater than 0";
+    if ((formData.minAmount ?? 0) < 0) return "Min amount must be >= 0";
+    if ((formData.usageLimit ?? 0) <= 0) return "Usage limit must be greater than 0";
+    
+    // Validate percentage discount
+    if (formData.type === "percentage" && (formData.discountValue ?? 0) > 100) {
+      return "Percentage discount cannot exceed 100%";
+    }
+    
+    return null;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const err = validateForm();
+    if (err) {
+      toast.error(err);
+      return;
+    }
+
+    try {
+      if (editingPromo?.id) {
+        await updatePromotion(editingPromo.id, formData);
+        toast.success("ອັບເດດໂປຣໂມຊັນສຳເລັດ!");
+      } else {
+        // Create new promotion - ensure all required fields are present
+        const createData: Omit<Promotion, "id" | "usedCount"> = {
+          code: formData.code!,
+          name: formData.name!,
+          description: formData.description!,
+          type: formData.type!,
+          discountValue: formData.discountValue ?? 0,
+          minAmount: formData.minAmount ?? 0,
+          maxDiscount: formData.maxDiscount,
+          startDate: formData.startDate!,
+          endDate: formData.endDate!,
+          usageLimit: formData.usageLimit ?? 100,
+          status: formData.status ?? "scheduled",
+          applicableServices: formData.applicableServices ?? [],
+          createdBy: formData.createdBy ?? "admin",
+        };
+        
+        console.log("Creating promotion with data:", createData);
+        await createPromotion(createData);
+        toast.success("ເພີ່ມໂປຣໂມຊັນສຳເລັດ!");
+      }
+
+      setShowModal(false);
+      fetchPromotions();
+      fetchStatistics();
+    } catch (error) {
+      const errorMsg = getErrorMessage(error, "Operation failed");
+      toast.error(errorMsg);
+      console.error("Submit error:", error);
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -195,18 +307,16 @@ export default function PromotionsManagement() {
     }
   };
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case "active":
-        return "ກຳລັງໃຊ້ງານ";
-      case "scheduled":
-        return "ກຳນົດການ";
-      case "expired":
-        return "ໝົດອາຍຸ";
-      case "inactive":
-        return "ປິດການໃຊ້ງານ";
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case "percentage":
+        return "bg-yellow-100 text-yellow-700";
+      case "fixed":
+        return "bg-blue-100 text-blue-700";
+      case "free_service":
+        return "bg-purple-100 text-purple-700";
       default:
-        return status;
+        return "bg-gray-100 text-gray-700";
     }
   };
 
@@ -223,36 +333,16 @@ export default function PromotionsManagement() {
     }
   };
 
-  const totalActive = promotions.filter((p) => p.status === "active").length;
-  const totalScheduled = promotions.filter((p) => p.status === "scheduled").length;
-  const totalUsage = promotions.reduce((sum, p) => sum + p.usedCount, 0);
-
-  const handleDelete = (id: number) => {
-    if (confirm("ທ່ານຕ້ອງການລົບໂປຣໂມຊັນນີ້ແທ້ບໍ່?")) {
-      setPromotions(promotions.filter((p) => p.id !== id));
-    }
-  };
-
-  const handleViewDetails = (promo: Promotion) => {
-    setSelectedPromo(promo);
-  };
-
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;500;600;700&display=swap');
-        
-        .lao-font {
-            font-family: 'Noto Sans Lao', sans-serif;
-        }
+        .lao-font { font-family: 'Noto Sans Lao', sans-serif; }
       `}</style>
 
       <Sidebar onToggle={setSidebarOpen} />
 
-      <div
-        className="flex-1 transition-all duration-300"
-        style={{ marginLeft: sidebarOpen ? "256px" : "80px" }}
-      >
+      <div className="flex-1 transition-all duration-300" style={{ marginLeft: sidebarOpen ? "256px" : "80px" }}>
         <Navbar title="ຈັດການໂປຣໂມຊັນ" />
 
         <div className="p-8">
@@ -262,9 +352,7 @@ export default function PromotionsManagement() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-600 text-sm lao-font">ທັງໝົດ</p>
-                  <p className="text-2xl font-bold text-[#140F36] lao-font">
-                    {promotions.length}
-                  </p>
+                  <p className="text-2xl font-bold text-[#140F36] lao-font">{statistics.total ?? 0}</p>
                 </div>
                 <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
                   <Gift size={24} className="text-purple-600" />
@@ -275,10 +363,8 @@ export default function PromotionsManagement() {
             <div className="bg-white rounded-xl shadow-md p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-600 text-sm lao-font">ກຳລັງໃຊ້ງານ</p>
-                  <p className="text-2xl font-bold text-green-600 lao-font">
-                    {totalActive}
-                  </p>
+                  <p className="text-gray-600 text-sm lao-font">Active</p>
+                  <p className="text-2xl font-bold text-green-600 lao-font">{statistics.active ?? 0}</p>
                 </div>
                 <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
                   <CheckCircle size={24} className="text-green-600" />
@@ -289,10 +375,8 @@ export default function PromotionsManagement() {
             <div className="bg-white rounded-xl shadow-md p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-600 text-sm lao-font">ກຳນົດການ</p>
-                  <p className="text-2xl font-bold text-blue-600 lao-font">
-                    {totalScheduled}
-                  </p>
+                  <p className="text-gray-600 text-sm lao-font">Scheduled</p>
+                  <p className="text-2xl font-bold text-blue-600 lao-font">{statistics.scheduled ?? 0}</p>
                 </div>
                 <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
                   <Clock size={24} className="text-blue-600" />
@@ -303,10 +387,8 @@ export default function PromotionsManagement() {
             <div className="bg-white rounded-xl shadow-md p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-600 text-sm lao-font">ການນຳໃຊ້</p>
-                  <p className="text-2xl font-bold text-[#EF3328] lao-font">
-                    {totalUsage.toLocaleString()}
-                  </p>
+                  <p className="text-gray-600 text-sm lao-font">Usage</p>
+                  <p className="text-2xl font-bold text-[#EF3328] lao-font">{(statistics.totalUsage ?? 0).toLocaleString()}</p>
                 </div>
                 <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
                   <TrendingUp size={24} className="text-[#EF3328]" />
@@ -315,292 +397,380 @@ export default function PromotionsManagement() {
             </div>
           </div>
 
-          {/* Promotions List */}
-          <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <h2 className="text-2xl font-bold text-[#140F36] lao-font">
-                  ລາຍການໂປຣໂມຊັນ
-                </h2>
-
-                <div className="flex gap-2">
-                  <div className="relative flex-1 md:flex-none">
-                    <Search
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                      size={20}
-                    />
-                    <input
-                      type="text"
-                      placeholder="ຄົ້ນຫາ..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EF3328] lao-font w-full md:w-64"
-                    />
-                  </div>
-
-                  <select
-                    value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value)}
-                    className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EF3328] lao-font"
-                  >
-                    <option value="all">ທຸກສະຖານະ</option>
-                    <option value="active">ກຳລັງໃຊ້ງານ</option>
-                    <option value="scheduled">ກຳນົດການ</option>
-                    <option value="expired">ໝົດອາຍຸ</option>
-                    <option value="inactive">ປິດການໃຊ້ງານ</option>
-                  </select>
-
-                  <select
-                    value={filterType}
-                    onChange={(e) => setFilterType(e.target.value)}
-                    className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EF3328] lao-font"
-                  >
-                    <option value="all">ທຸກປະເພດ</option>
-                    <option value="percentage">ສ່ວນຫຼຸດເປີເຊັນ</option>
-                    <option value="fixed">ຫຼຸດເງິນສົດ</option>
-                    <option value="free_service">ບໍລິການຟຣີ</option>
-                  </select>
-
-                  <button className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                    <Download size={20} />
-                  </button>
-
-                  <button
-                    onClick={() => setShowAddModal(true)}
-                    className="px-4 py-2 bg-gradient-to-r from-[#EF3328] to-[#d62a20] text-white rounded-lg hover:shadow-lg transition-all duration-300 flex items-center gap-2 lao-font"
-                  >
-                    <Plus size={20} />
-                    ເພີ່ມໂປຣໂມຊັນ
-                  </button>
-                </div>
+          {/* Header Actions */}
+          <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex items-center gap-4 flex-1">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                <input
+                  type="text"
+                  placeholder="ຄົ້ນຫາໂປຣໂມຊັນ..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#EF3328] lao-font"
+                />
               </div>
+
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#EF3328] lao-font"
+              >
+                <option value="all">ທຸກສະຖານະ</option>
+                <option value="active">active</option>
+                <option value="scheduled">scheduled</option>
+                <option value="expired">expired</option>
+                <option value="inactive">inactive</option>
+              </select>
+
+              <select
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#EF3328] lao-font"
+              >
+                <option value="all">ທຸກປະເພດ</option>
+                <option value="percentage">percentage</option>
+                <option value="fixed">fixed</option>
+                <option value="free_service">free_service</option>
+              </select>
             </div>
 
-            {/* Promotions Grid */}
-            <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredPromotions.map((promo) => (
-                <div
-                  key={promo.id}
-                  className="bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200"
-                >
-                  {/* Header */}
-                  <div className="bg-gradient-to-r from-[#EF3328] to-[#d62a20] p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h3 className="text-white font-bold text-lg lao-font mb-1">
-                          {promo.name}
-                        </h3>
-                        <div className="flex items-center gap-2">
-                          <Tag size={14} className="text-white/80" />
-                          <span className="text-white/90 text-sm font-mono">
-                            {promo.code}
-                          </span>
-                        </div>
-                      </div>
-                      <span
-                        className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(
-                          promo.status
-                        )}`}
-                      >
-                        {getStatusIcon(promo.status)}
-                        {getStatusLabel(promo.status)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Content */}
-                  <div className="p-4 space-y-3">
-                    <p className="text-gray-600 text-sm lao-font line-clamp-2">
-                      {promo.description}
-                    </p>
-
-                    {/* Discount Info */}
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Percent size={18} className="text-yellow-600" />
-                        <span className="text-sm font-semibold text-gray-700 lao-font">
-                          {getTypeLabel(promo.type)}
-                        </span>
-                      </div>
-                      {promo.type === "percentage" && (
-                        <p className="text-2xl font-bold text-yellow-600">
-                          {promo.discountValue}%
-                        </p>
-                      )}
-                      {promo.type === "fixed" && (
-                        <p className="text-2xl font-bold text-yellow-600 lao-font">
-                          {promo.discountValue.toLocaleString()} ກີບ
-                        </p>
-                      )}
-                      {promo.type === "free_service" && (
-                        <p className="text-lg font-bold text-yellow-600 lao-font">
-                          ບໍລິການຟຣີ
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Stats */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="bg-blue-50 rounded-lg p-2">
-                        <p className="text-xs text-gray-600 lao-font mb-1">
-                          ນຳໃຊ້ແລ້ວ
-                        </p>
-                        <p className="text-lg font-bold text-blue-600">
-                          {promo.usedCount}/{promo.usageLimit}
-                        </p>
-                      </div>
-                      <div className="bg-green-50 rounded-lg p-2">
-                        <p className="text-xs text-gray-600 lao-font mb-1">
-                          ຍັງເຫຼືອ
-                        </p>
-                        <p className="text-lg font-bold text-green-600">
-                          {promo.usageLimit - promo.usedCount}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Dates */}
-                    <div className="space-y-1 text-sm">
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <Calendar size={14} />
-                        <span className="lao-font">ເລີ່ມ:</span>
-                        <span className="font-semibold">{promo.startDate}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <Calendar size={14} />
-                        <span className="lao-font">ສິ້ນສຸດ:</span>
-                        <span className="font-semibold">{promo.endDate}</span>
-                      </div>
-                    </div>
-
-                    {/* Services */}
-                    <div>
-                      <p className="text-xs text-gray-600 lao-font mb-1">
-                        ບໍລິການທີ່ໃຊ້ໄດ້:
-                      </p>
-                      <div className="flex flex-wrap gap-1">
-                        {promo.applicableServices.map((service, idx) => (
-                          <span
-                            key={idx}
-                            className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full lao-font"
-                          >
-                            {service}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex gap-2 pt-2 border-t border-gray-200">
-                      <button
-                        onClick={() => handleViewDetails(promo)}
-                        className="flex-1 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors flex items-center justify-center gap-1 text-sm lao-font"
-                      >
-                        <Eye size={16} />
-                        ເບິ່ງ
-                      </button>
-                      <button className="flex-1 px-3 py-2 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition-colors flex items-center justify-center gap-1 text-sm lao-font">
-                        <Edit size={16} />
-                        ແກ້ໄຂ
-                      </button>
-                      <button
-                        onClick={() => handleDelete(promo.id)}
-                        className="px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors flex items-center justify-center"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
+            <div className="flex gap-2">
+              <button className="px-4 py-2 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors flex items-center gap-2 lao-font">
+                <Download size={20} />
+                <span>Export</span>
+              </button>
+              <button
+                onClick={handleAddPromotion}
+                className="px-4 py-2 bg-gradient-to-r from-[#EF3328] to-[#d62a20] text-white rounded-xl hover:shadow-lg transition-all duration-300 flex items-center gap-2 lao-font"
+              >
+                <Plus size={20} />
+                <span>ເພີ່ມ</span>
+              </button>
             </div>
           </div>
 
-          {/* Detail Modal */}
-          {selectedPromo && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                <div className="bg-gradient-to-r from-[#EF3328] to-[#d62a20] p-6 text-white">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h2 className="text-2xl font-bold lao-font mb-2">
-                        {selectedPromo.name}
-                      </h2>
-                      <p className="text-white/90 font-mono">{selectedPromo.code}</p>
-                    </div>
-                    <button
-                      onClick={() => setSelectedPromo(null)}
-                      className="text-white hover:bg-white/20 rounded-lg p-2"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </div>
-
-                <div className="p-6 space-y-6">
-                  <div>
-                    <h3 className="font-bold text-gray-700 lao-font mb-2">ລາຍລະອຽດ</h3>
-                    <p className="text-gray-600 lao-font">{selectedPromo.description}</p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <p className="text-sm text-gray-600 lao-font mb-1">ປະເພດ</p>
-                      <p className="font-bold text-gray-800 lao-font">
-                        {getTypeLabel(selectedPromo.type)}
-                      </p>
-                    </div>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <p className="text-sm text-gray-600 lao-font mb-1">ມູນຄ່າສ່ວນຫຼຸດ</p>
-                      <p className="font-bold text-gray-800">
-                        {selectedPromo.type === "percentage"
-                          ? `${selectedPromo.discountValue}%`
-                          : `${selectedPromo.discountValue.toLocaleString()} ກີບ`}
-                      </p>
-                    </div>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <p className="text-sm text-gray-600 lao-font mb-1">ຍອດຂັ້ນຕ່ຳ</p>
-                      <p className="font-bold text-gray-800 lao-font">
-                        {selectedPromo.minAmount.toLocaleString()} ກີບ
-                      </p>
-                    </div>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <p className="text-sm text-gray-600 lao-font mb-1">ນຳໃຊ້ແລ້ວ</p>
-                      <p className="font-bold text-gray-800">
-                        {selectedPromo.usedCount}/{selectedPromo.usageLimit}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="font-bold text-gray-700 lao-font mb-2">
-                      ບໍລິການທີ່ໃຊ້ໄດ້
-                    </h3>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedPromo.applicableServices.map((service, idx) => (
-                        <span
-                          key={idx}
-                          className="px-3 py-2 bg-purple-100 text-purple-700 rounded-lg lao-font"
-                        >
-                          {service}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="bg-blue-50 p-4 rounded-lg">
-                    <p className="text-sm text-gray-600 lao-font mb-2">ສ້າງໂດຍ</p>
-                    <p className="font-bold text-gray-800 lao-font">
-                      {selectedPromo.createdBy}
-                    </p>
-                    <p className="text-sm text-gray-500">{selectedPromo.createdDate}</p>
-                  </div>
-                </div>
+          {/* Table */}
+          <div className="bg-white rounded-xl shadow-md overflow-hidden">
+            {loading ? (
+              <div className="flex justify-center items-center py-20">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#EF3328]"></div>
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gradient-to-r from-[#EF3328] to-[#d62a20] text-white">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-sm font-semibold lao-font">
+                        <button onClick={() => handleSort("code")} className="flex items-center gap-2 hover:text-white/80">
+                          Code {sortField === "code" && (sortDirection === "asc" ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
+                        </button>
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold lao-font">
+                        <button onClick={() => handleSort("name")} className="flex items-center gap-2 hover:text-white/80">
+                          Name {sortField === "name" && (sortDirection === "asc" ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
+                        </button>
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold lao-font">Type</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold lao-font">Discount</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold lao-font">Usage</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold lao-font">Status</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold lao-font">Period</th>
+                      <th className="px-6 py-4 text-center text-sm font-semibold lao-font">Action</th>
+                    </tr>
+                  </thead>
+
+                  <tbody className="divide-y divide-gray-200">
+                    {sortedPromotions.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="px-6 py-12 text-center">
+                          <p className="text-gray-500 text-lg lao-font">ບໍ່ພົບຂໍ້ມູນ</p>
+                        </td>
+                      </tr>
+                    ) : (
+                      sortedPromotions.map((p) => (
+                        <tr key={p.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-6 py-4 text-sm font-medium text-gray-900">{p.code}</td>
+                          <td className="px-6 py-4 text-sm text-gray-900 lao-font">{p.name}</td>
+
+                          <td className="px-6 py-4 text-sm">
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium lao-font ${getTypeColor(p.type)}`}>
+                              {getTypeLabel(p.type)}
+                            </span>
+                          </td>
+
+                          <td className="px-6 py-4 text-sm text-gray-900">
+                            {p.type === "percentage" ? `${p.discountValue}%` : `${(p.discountValue ?? 0).toLocaleString()} ກີບ`}
+                          </td>
+
+                          <td className="px-6 py-4 text-sm text-gray-900">
+                            {(p.usedCount ?? 0)} / {p.usageLimit}
+                          </td>
+
+                          <td className="px-6 py-4 text-sm">
+                            <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium lao-font ${getStatusColor(p.status)}`}>
+                              {getStatusIcon(p.status)} {p.status}
+                            </span>
+                          </td>
+
+                          <td className="px-6 py-4 text-sm text-gray-500">
+                            <div className="flex flex-col gap-1">
+                              <span>{p.startDate}</span>
+                              <span>→ {p.endDate}</span>
+                            </div>
+                          </td>
+
+                          <td className="px-6 py-4 text-sm">
+                            <div className="flex items-center justify-center gap-2">
+                              <button
+                                onClick={() => handleEditPromotion(p)}
+                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                title="Edit"
+                              >
+                                <Edit2 size={18} />
+                              </button>
+                              <button
+                                onClick={() => p.id && handleDeletePromotion(p.id)}
+                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Delete"
+                              >
+                                <Trash2 size={18} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-gradient-to-r from-[#EF3328] to-[#d62a20] p-6 flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-white lao-font">
+                {editingPromo ? "Edit Promotion" : "Add Promotion"}
+              </h2>
+              <button onClick={() => setShowModal(false)} className="text-white hover:bg-white/20 p-2 rounded-lg transition-colors">
+                <X size={24} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2 lao-font">
+                    Code <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.code || ""}
+                    onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EF3328] lao-font"
+                    placeholder="e.g., SUMMER2025"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2 lao-font">
+                    Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.name || ""}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EF3328] lao-font"
+                    placeholder="Promotion name"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2 lao-font">
+                    Type <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={(formData.type || "percentage") as Promotion["type"]}
+                    onChange={(e) => setFormData({ ...formData, type: e.target.value as Promotion["type"] })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EF3328] lao-font"
+                    required
+                  >
+                    <option value="percentage">Percentage (%)</option>
+                    <option value="fixed">Fixed Amount</option>
+                    <option value="free_service">Free Service</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2 lao-font">
+                    Discount Value <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={Number(formData.discountValue ?? 0)}
+                    onChange={(e) => setFormData({ ...formData, discountValue: Number(e.target.value) })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EF3328] lao-font"
+                    placeholder={formData.type === "percentage" ? "0-100" : "Amount"}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2 lao-font">
+                    Min Amount <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={Number(formData.minAmount ?? 0)}
+                    onChange={(e) => setFormData({ ...formData, minAmount: Number(e.target.value) })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EF3328] lao-font"
+                    placeholder="Minimum purchase amount"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2 lao-font">
+                    Max Discount (Optional)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={formData.maxDiscount ?? ""}
+                    onChange={(e) => setFormData({ ...formData, maxDiscount: e.target.value ? Number(e.target.value) : undefined })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EF3328] lao-font"
+                    placeholder="Maximum discount amount"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2 lao-font">
+                    Usage Limit <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={Number(formData.usageLimit ?? 100)}
+                    onChange={(e) => setFormData({ ...formData, usageLimit: Number(e.target.value) })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EF3328] lao-font"
+                    placeholder="Number of times this can be used"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2 lao-font">
+                    Status <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={(formData.status || "scheduled") as Promotion["status"]}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value as Promotion["status"] })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EF3328] lao-font"
+                    required
+                  >
+                    <option value="active">Active</option>
+                    <option value="scheduled">Scheduled</option>
+                    <option value="expired">Expired</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2 lao-font">
+                    Start Date <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.startDate || ""}
+                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EF3328] lao-font"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2 lao-font">
+                    End Date <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.endDate || ""}
+                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EF3328] lao-font"
+                    required
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2 lao-font">
+                    Applicable Services (comma separated)
+                  </label>
+                  <input
+                    type="text"
+                    value={(formData.applicableServices || []).join(", ")}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        applicableServices: e.target.value
+                          .split(",")
+                          .map((s) => s.trim())
+                          .filter(Boolean),
+                      })
+                    }
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EF3328] lao-font"
+                    placeholder="e.g., mobile_topup, bill_payment, money_transfer"
+                  />
+                  <p className="text-xs text-gray-500 mt-1 lao-font">
+                    Leave empty to apply to all services
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2 lao-font">
+                  Description <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={formData.description || ""}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EF3328] lao-font"
+                  rows={3}
+                  placeholder="Enter promotion description..."
+                  required
+                />
+              </div>
+
+              <div className="flex gap-4 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="flex-1 px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors lao-font font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-[#EF3328] to-[#d62a20] text-white rounded-lg hover:shadow-lg transition-all duration-300 lao-font font-medium"
+                >
+                  {editingPromo ? "Update Promotion" : "Create Promotion"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

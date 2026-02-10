@@ -1,6 +1,6 @@
 import axios, { type AxiosResponse, type AxiosError } from "axios";
 
-const BASE_URL = "http://localhost:5000/api"; // Your backend URL
+const BASE_URL = "http://localhost:5001/api"; // Your backend URL
 
 /* --- Types --- */
 export interface DataPackage {

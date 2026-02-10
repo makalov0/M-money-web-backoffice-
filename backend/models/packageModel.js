@@ -6,27 +6,31 @@ class PackageModel {
     try {
       let query = 'SELECT * FROM data_packages WHERE 1=1';
       const params = [];
+      let paramCount = 1;
 
       // Add filters
       if (filters.type && filters.type !== 'all') {
-        query += ' AND type = ?';
+        query += ` AND type = $${paramCount}`;
         params.push(filters.type);
+        paramCount++;
       }
 
       if (filters.status) {
-        query += ' AND status = ?';
+        query += ` AND status = $${paramCount}`;
         params.push(filters.status);
+        paramCount++;
       }
 
       if (filters.search) {
-        query += ' AND (name LIKE ? OR name_en LIKE ?)';
+        query += ` AND (name ILIKE $${paramCount} OR name_en ILIKE $${paramCount + 1})`;
         params.push(`%${filters.search}%`, `%${filters.search}%`);
+        paramCount += 2;
       }
 
       query += ' ORDER BY id DESC';
 
-      const [rows] = await pool.query(query, params);
-      return rows;
+      const result = await pool.query(query, params);
+      return result.rows;
     } catch (error) {
       throw error;
     }
@@ -35,11 +39,11 @@ class PackageModel {
   // Get package by ID
   static async getPackageById(id) {
     try {
-      const [rows] = await pool.query(
-        'SELECT * FROM data_packages WHERE id = ?',
+      const result = await pool.query(
+        'SELECT * FROM data_packages WHERE id = $1',
         [id]
       );
-      return rows[0];
+      return result.rows[0];
     } catch (error) {
       throw error;
     }
@@ -48,22 +52,23 @@ class PackageModel {
   // Create new package
   static async createPackage(packageData) {
     try {
-      const [result] = await pool.query(
+      const result = await pool.query(
         `INSERT INTO data_packages (name, name_en, data, price, validity, speed, type, status, description) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         RETURNING id`,
         [
           packageData.name,
           packageData.nameEn,
           packageData.data,
           packageData.price,
           packageData.validity,
-          packageData.speed || null,
+          packageData.speed || '4G/5G',
           packageData.type,
           packageData.status || 'active',
-          packageData.description || null
+          packageData.description || ''
         ]
       );
-      return result.insertId;
+      return result.rows[0].id;
     } catch (error) {
       throw error;
     }
@@ -72,25 +77,25 @@ class PackageModel {
   // Update package
   static async updatePackage(id, packageData) {
     try {
-      const [result] = await pool.query(
+      const result = await pool.query(
         `UPDATE data_packages 
-         SET name = ?, name_en = ?, data = ?, price = ?, validity = ?, 
-             speed = ?, type = ?, status = ?, description = ?
-         WHERE id = ?`,
+         SET name = $1, name_en = $2, data = $3, price = $4, validity = $5, 
+             speed = $6, type = $7, status = $8, description = $9
+         WHERE id = $10`,
         [
           packageData.name,
           packageData.nameEn,
           packageData.data,
           packageData.price,
           packageData.validity,
-          packageData.speed || null,
+          packageData.speed || '4G/5G',
           packageData.type,
           packageData.status || 'active',
-          packageData.description || null,
+          packageData.description || '',
           id
         ]
       );
-      return result.affectedRows;
+      return result.rowCount;
     } catch (error) {
       throw error;
     }
@@ -99,11 +104,11 @@ class PackageModel {
   // Delete package
   static async deletePackage(id) {
     try {
-      const [result] = await pool.query(
-        'DELETE FROM data_packages WHERE id = ?',
+      const result = await pool.query(
+        'DELETE FROM data_packages WHERE id = $1',
         [id]
       );
-      return result.affectedRows;
+      return result.rowCount;
     } catch (error) {
       throw error;
     }
@@ -112,22 +117,22 @@ class PackageModel {
   // Get statistics
   static async getStatistics() {
     try {
-      const [totalCount] = await pool.query(
+      const totalResult = await pool.query(
         'SELECT COUNT(*) as total FROM data_packages'
       );
 
-      const [typeCount] = await pool.query(
+      const typeResult = await pool.query(
         'SELECT type, COUNT(*) as count FROM data_packages GROUP BY type'
       );
 
-      const [avgPrice] = await pool.query(
+      const avgResult = await pool.query(
         'SELECT AVG(price) as avg_price FROM data_packages'
       );
 
       return {
-        total: totalCount[0].total,
-        byType: typeCount,
-        avgPrice: avgPrice[0].avg_price
+        total: parseInt(totalResult.rows[0].total),
+        byType: typeResult.rows,
+        avgPrice: parseFloat(avgResult.rows[0].avg_price) || 0
       };
     } catch (error) {
       throw error;

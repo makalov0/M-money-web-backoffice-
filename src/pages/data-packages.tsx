@@ -12,6 +12,8 @@ import {
   Clock,
   Wifi,
   X,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import {
@@ -31,6 +33,8 @@ export default function DataPackages() {
   const [editingPackage, setEditingPackage] = useState<DataPackage | null>(null);
   const [packages, setPackages] = useState<DataPackage[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sortField, setSortField] = useState<keyof DataPackage | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   const [formData, setFormData] = useState<Partial<DataPackage>>({
     name: "",
@@ -55,7 +59,6 @@ export default function DataPackages() {
       const data = await getAllPackages();
       setPackages(data);
     } catch (error: unknown) {
-      // Changed any to unknown and added type narrowing
       const message = error instanceof Error ? error.message : "Failed to load packages";
       toast.error(message);
       console.error("Fetch packages error:", error);
@@ -83,7 +86,6 @@ export default function DataPackages() {
       const data = await searchPackages(searchTerm, filterType);
       setPackages(data);
     } catch (error: unknown) {
-      // Changed any to unknown and added type narrowing
       const message = error instanceof Error ? error.message : "Search failed";
       toast.error(message);
       console.error("Search error:", error);
@@ -92,7 +94,35 @@ export default function DataPackages() {
     }
   };
 
-  const filteredPackages = packages;
+  const handleSort = (field: keyof DataPackage) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const sortedPackages = [...packages].sort((a, b) => {
+    if (!sortField) return 0;
+    
+    const aValue = a[sortField];
+    const bValue = b[sortField];
+    
+    if (aValue === undefined || bValue === undefined) return 0;
+    
+    if (typeof aValue === 'string' && typeof bValue === 'string') {
+      return sortDirection === 'asc' 
+        ? aValue.localeCompare(bValue)
+        : bValue.localeCompare(aValue);
+    }
+    
+    if (typeof aValue === 'number' && typeof bValue === 'number') {
+      return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+    }
+    
+    return 0;
+  });
 
   const handleAddPackage = () => {
     setEditingPackage(null);
@@ -123,7 +153,6 @@ export default function DataPackages() {
         toast.success("ລຶບແພັກເກັດສຳເລັດ!");
         fetchPackages();
       } catch (error: unknown) {
-        // Changed any to unknown and added type narrowing
         const message = error instanceof Error ? error.message : "Failed to delete package";
         toast.error(message);
         console.error("Delete error:", error);
@@ -136,11 +165,9 @@ export default function DataPackages() {
     
     try {
       if (editingPackage && editingPackage.id) {
-        // Update existing package
         await updatePackage(editingPackage.id, formData);
         toast.success("ອັບເດດແພັກເກັດສຳເລັດ!");
       } else {
-        // Create new package
         await createPackage(formData as Omit<DataPackage, 'id'>);
         toast.success("ເພີ່ມແພັກເກັດສຳເລັດ!");
       }
@@ -148,7 +175,6 @@ export default function DataPackages() {
       setShowModal(false);
       fetchPackages();
     } catch (error: unknown) {
-      // Changed any to unknown and added type narrowing
       const message = error instanceof Error ? error.message : "Operation failed";
       toast.error(message);
       console.error("Submit error:", error);
@@ -185,6 +211,16 @@ export default function DataPackages() {
     }
   };
 
+  const getStatusBadge = (status: string) => {
+    return status === "active" 
+      ? "bg-green-100 text-green-700"
+      : "bg-gray-100 text-gray-700";
+  };
+
+  const getStatusLabel = (status: string) => {
+    return status === "active" ? "ເປີດໃຊ້ງານ" : "ປິດໃຊ້ງານ";
+  };
+
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200">
       <style>{`
@@ -208,54 +244,6 @@ export default function DataPackages() {
 
         {/* Page Content */}
         <div className="p-8">
-          {/* Header Actions */}
-          <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div className="flex items-center gap-4 flex-1">
-              {/* Search */}
-              <div className="relative flex-1 max-w-md">
-                <Search
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                  size={20}
-                />
-                <input
-                  type="text"
-                  placeholder="ຄົ້ນຫາແພັກເກັດ..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#EF3328] lao-font"
-                />
-              </div>
-
-              {/* Filter */}
-              <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#EF3328] lao-font"
-              >
-                <option value="all">ທັງໝົດ</option>
-                <option value="daily">ລາຍວັນ</option>
-                <option value="weekly">ລາຍອາທິດ</option>
-                <option value="monthly">ລາຍເດືອນ</option>
-                <option value="unlimited">ບໍ່ຈຳກັດ</option>
-              </select>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex gap-2">
-              <button className="px-4 py-2 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors flex items-center gap-2 lao-font">
-                <Download size={20} />
-                <span>Export</span>
-              </button>
-              <button
-                onClick={handleAddPackage}
-                className="px-4 py-2 bg-gradient-to-r from-[#EF3328] to-[#d62a20] text-white rounded-xl hover:shadow-lg transition-all duration-300 flex items-center gap-2 lao-font"
-              >
-                <Plus size={20} />
-                <span>ເພີ່ມແພັກເກັດ</span>
-              </button>
-            </div>
-          </div>
-
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
             <div className="bg-white rounded-xl shadow-md p-6">
@@ -321,93 +309,213 @@ export default function DataPackages() {
             </div>
           </div>
 
-          {/* Loading State */}
-          {loading ? (
-            <div className="flex justify-center items-center py-20">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#EF3328]"></div>
+          {/* Header Actions */}
+          <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex items-center gap-4 flex-1">
+              {/* Search */}
+              <div className="relative flex-1 max-w-md">
+                <Search
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  size={20}
+                />
+                <input
+                  type="text"
+                  placeholder="ຄົ້ນຫາແພັກເກັດ..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#EF3328] lao-font"
+                />
+              </div>
+
+              {/* Filter */}
+              <select
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#EF3328] lao-font"
+              >
+                <option value="all">ທັງໝົດ</option>
+                <option value="daily">ລາຍວັນ</option>
+                <option value="weekly">ລາຍອາທິດ</option>
+                <option value="monthly">ລາຍເດືອນ</option>
+                <option value="unlimited">ບໍ່ຈຳກັດ</option>
+              </select>
             </div>
-          ) : (
-            /* Packages Grid */
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredPackages.length === 0 ? (
-                <div className="col-span-full text-center py-20">
-                  <p className="text-gray-500 text-lg lao-font">ບໍ່ພົບຂໍ້ມູນແພັກເກັດ</p>
-                </div>
-              ) : (
-                filteredPackages.map((pkg) => (
-                  <div
-                    key={pkg.id}
-                    className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden"
-                  >
-                    <div className="bg-gradient-to-r from-[#EF3328] to-[#d62a20] p-6 text-white">
-                      <div className="flex items-start justify-between mb-4">
-                        <div>
-                          <h3 className="text-xl font-bold lao-font mb-1">
-                            {pkg.name}
-                          </h3>
-                          <p className="text-white/80 text-sm">{pkg.nameEn}</p>
-                        </div>
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-semibold ${getTypeColor(
-                            pkg.type
-                          )} bg-white lao-font`}
-                        >
-                          {getTypeLabel(pkg.type)}
-                        </span>
-                      </div>
-                      <div className="text-3xl font-bold lao-font">{pkg.data}</div>
-                    </div>
 
-                    <div className="p-6">
-                      <div className="space-y-3 mb-6">
-                        <div className="flex items-center justify-between">
-                          <span className="text-gray-600 lao-font">ລາຄາ:</span>
-                          <span className="font-bold text-[#EF3328] lao-font">
-                            {pkg.price.toLocaleString()} ກີບ
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-gray-600 lao-font">
-                            ໄລຍະເວລາ:
-                          </span>
-                          <span className="font-semibold text-[#140F36] lao-font">
-                            {pkg.validity}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-gray-600 lao-font">ຄວາມໄວ:</span>
-                          <span className="font-semibold text-[#140F36] lao-font">
-                            {pkg.speed}
-                          </span>
-                        </div>
-                      </div>
-
-                      <p className="text-sm text-gray-600 mb-4 lao-font">
-                        {pkg.description}
-                      </p>
-
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleEditPackage(pkg)}
-                          className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center gap-2 lao-font"
-                        >
-                          <Edit2 size={16} />
-                          <span>ແກ້ໄຂ</span>
-                        </button>
-                        <button
-                          onClick={() => pkg.id && handleDeletePackage(pkg.id)}
-                          className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center justify-center gap-2 lao-font"
-                        >
-                          <Trash2 size={16} />
-                          <span>ລຶບ</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
+            {/* Action Buttons */}
+            <div className="flex gap-2">
+              <button className="px-4 py-2 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors flex items-center gap-2 lao-font">
+                <Download size={20} />
+                <span>Export</span>
+              </button>
+              <button
+                onClick={handleAddPackage}
+                className="px-4 py-2 bg-gradient-to-r from-[#EF3328] to-[#d62a20] text-white rounded-xl hover:shadow-lg transition-all duration-300 flex items-center gap-2 lao-font"
+              >
+                <Plus size={20} />
+                <span>ເພີ່ມແພັກເກັດ</span>
+              </button>
             </div>
-          )}
+          </div>
+
+          {/* Table */}
+          <div className="bg-white rounded-xl shadow-md overflow-hidden">
+            {loading ? (
+              <div className="flex justify-center items-center py-20">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#EF3328]"></div>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gradient-to-r from-[#EF3328] to-[#d62a20] text-white">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-sm font-semibold lao-font">
+                        <button 
+                          onClick={() => handleSort('name')}
+                          className="flex items-center gap-2 hover:text-white/80"
+                        >
+                          ຊື່ແພັກເກັດ
+                          {sortField === 'name' && (
+                            sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />
+                          )}
+                        </button>
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold lao-font">
+                        <button 
+                          onClick={() => handleSort('data')}
+                          className="flex items-center gap-2 hover:text-white/80"
+                        >
+                          ຂໍ້ມູນ
+                          {sortField === 'data' && (
+                            sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />
+                          )}
+                        </button>
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold lao-font">
+                        <button 
+                          onClick={() => handleSort('price')}
+                          className="flex items-center gap-2 hover:text-white/80"
+                        >
+                          ລາຄາ
+                          {sortField === 'price' && (
+                            sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />
+                          )}
+                        </button>
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold lao-font">
+                        <button 
+                          onClick={() => handleSort('validity')}
+                          className="flex items-center gap-2 hover:text-white/80"
+                        >
+                          ໄລຍະເວລາ
+                          {sortField === 'validity' && (
+                            sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />
+                          )}
+                        </button>
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold lao-font">
+                        <button 
+                          onClick={() => handleSort('speed')}
+                          className="flex items-center gap-2 hover:text-white/80"
+                        >
+                          ຄວາມໄວ
+                          {sortField === 'speed' && (
+                            sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />
+                          )}
+                        </button>
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold lao-font">
+                        <button 
+                          onClick={() => handleSort('type')}
+                          className="flex items-center gap-2 hover:text-white/80"
+                        >
+                          ປະເພດ
+                          {sortField === 'type' && (
+                            sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />
+                          )}
+                        </button>
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold lao-font">
+                        <button 
+                          onClick={() => handleSort('status')}
+                          className="flex items-center gap-2 hover:text-white/80"
+                        >
+                          ສະຖານະ
+                          {sortField === 'status' && (
+                            sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />
+                          )}
+                        </button>
+                      </th>
+                      <th className="px-6 py-4 text-center text-sm font-semibold lao-font">
+                        ຈັດການ
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {sortedPackages.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="px-6 py-12 text-center">
+                          <p className="text-gray-500 text-lg lao-font">ບໍ່ພົບຂໍ້ມູນແພັກເກັດ</p>
+                        </td>
+                      </tr>
+                    ) : (
+                      sortedPackages.map((pkg) => (
+                        <tr key={pkg.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-6 py-4">
+                            <div>
+                              <p className="font-semibold text-[#140F36] lao-font">{pkg.name}</p>
+                              <p className="text-sm text-gray-600">{pkg.nameEn}</p>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="font-bold text-[#EF3328] lao-font">{pkg.data}</span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="font-semibold text-[#140F36] lao-font">
+                              {pkg.price.toLocaleString()} ກີບ
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="text-gray-700 lao-font">{pkg.validity}</span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="text-gray-700 lao-font">{pkg.speed}</span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getTypeColor(pkg.type)} lao-font`}>
+                              {getTypeLabel(pkg.type)}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(pkg.status)} lao-font`}>
+                              {getStatusLabel(pkg.status)}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center justify-center gap-2">
+                              <button
+                                onClick={() => handleEditPackage(pkg)}
+                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                title="ແກ້ໄຂ"
+                              >
+                                <Edit2 size={18} />
+                              </button>
+                              <button
+                                onClick={() => pkg.id && handleDeletePackage(pkg.id)}
+                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                title="ລຶບ"
+                              >
+                                <Trash2 size={18} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

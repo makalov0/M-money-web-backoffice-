@@ -1,8 +1,13 @@
-import { useState, useRef, useEffect } from "react";
+// Sidebar.tsx (FULL)
+// ✅ Role-based menu: ADMIN-only items hidden for EMPLOYEE
+// ✅ Logout calls backend /api/auth/logout then clears storage and redirects to /login
+
+import React, { useState, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
-  Menu,
   Home,
+  Newspaper,
+  MonitorCheck,
   User,
   LogOut,
   ChevronDown,
@@ -10,6 +15,7 @@ import {
   Package,
   Smartphone,
   Wifi,
+  Menu,
   Globe,
   Cable,
   CreditCard,
@@ -29,7 +35,12 @@ import {
   Upload,
   MessageSquare,
   Tag,
+  Book,
 } from "lucide-react";
+import { toast } from "react-toastify";
+import { logoutApi } from "../../service/authservice";
+
+type UserRole = "ADMIN" | "EMPLOYEE";
 
 interface SidebarProps {
   onToggle?: (isOpen: boolean) => void;
@@ -37,64 +48,57 @@ interface SidebarProps {
 
 export default function Sidebar({ onToggle }: SidebarProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [isManagementOpen, setIsManagementOpen] = useState(false);
+
   const [isFTTHOpen, setIsFTTHOpen] = useState(false);
   const [isDigitalEntertainmentOpen, setIsDigitalEntertainmentOpen] = useState(false);
   const [isBillPaymentsOpen, setIsBillPaymentsOpen] = useState(false);
-  const [username, setUsername] = useState<string>("Admin User");
-  const [userRole, setUserRole] = useState<string>("admin");
+
+  const [username, setUsername] = useState<string>("Customer");
+  const [userRole, setUserRole] = useState<UserRole>("EMPLOYEE");
+
   const sidebarRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
+
+  const isAdmin = userRole === "ADMIN";
 
   const handleToggle = (newState: boolean) => {
     setIsOpen(newState);
     onToggle?.(newState);
   };
 
-  // Get user info from localStorage
+  // ✅ Get user info from localStorage
   useEffect(() => {
-    const storedUsername = localStorage.getItem("username") || "Guest";
-    const storedRole = localStorage.getItem("Role") || "user";
-    setUsername(storedUsername);
-    setUserRole(storedRole);
+    const storedEmpId = localStorage.getItem("empId") || "Customer";
+    const storedRole = (localStorage.getItem("role") || "EMPLOYEE").toUpperCase();
+
+    setUsername(storedEmpId);
+
+    if (storedRole === "ADMIN" || storedRole === "EMPLOYEE") {
+      setUserRole(storedRole);
+    } else {
+      setUserRole("EMPLOYEE");
+    }
   }, []);
 
   // Auto-open dropdowns if on related page
   useEffect(() => {
-    if (location.pathname.startsWith("/manage/")) {
-      setIsManagementOpen(true);
-    }
-    if (location.pathname.startsWith("/ftth/")) {
-      setIsFTTHOpen(true);
-    }
-    if (location.pathname.startsWith("/digital-entertainment/")) {
-      setIsDigitalEntertainmentOpen(true);
-    }
-    if (location.pathname.startsWith("/bill-payments/")) {
-      setIsBillPaymentsOpen(true);
-    }
+    
+    if (location.pathname.startsWith("/ftth/")) setIsFTTHOpen(true);
+    if (location.pathname.startsWith("/digital-entertainment/")) setIsDigitalEntertainmentOpen(true);
+    if (location.pathname.startsWith("/bill-payments/")) setIsBillPaymentsOpen(true);
   }, [location.pathname]);
 
+  // Close sidebar when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        sidebarRef.current &&
-        !sidebarRef.current.contains(event.target as Node)
-      ) {
+      if (sidebarRef.current && !sidebarRef.current.contains(event.target as Node)) {
         setIsOpen(false);
-        if (!location.pathname.startsWith("/manage/")) {
-          setIsManagementOpen(false);
-        }
-        if (!location.pathname.startsWith("/ftth/")) {
-          setIsFTTHOpen(false);
-        }
-        if (!location.pathname.startsWith("/digital-entertainment/")) {
-          setIsDigitalEntertainmentOpen(false);
-        }
-        if (!location.pathname.startsWith("/bill-payments/")) {
-          setIsBillPaymentsOpen(false);
-        }
+
+        
+        if (!location.pathname.startsWith("/ftth/")) setIsFTTHOpen(false);
+        if (!location.pathname.startsWith("/digital-entertainment/")) setIsDigitalEntertainmentOpen(false);
+        if (!location.pathname.startsWith("/bill-payments/")) setIsBillPaymentsOpen(false);
       }
     };
 
@@ -102,11 +106,17 @@ export default function Sidebar({ onToggle }: SidebarProps) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [location.pathname]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("username");
-    localStorage.removeItem("profile");
-    localStorage.removeItem("Role");
-    navigate("/login");
+  // ✅ Logout
+  const handleLogout = async () => {
+    try {
+      await logoutApi();
+      toast.success("ອອກຈາກລະບົບແລ້ວ", { autoClose: 1200 });
+    } catch (err) {
+      console.error("logout error:", err);
+      toast.info("ອອກຈາກລະບົບ", { autoClose: 1200 });
+    } finally {
+      navigate("/login", { replace: true });
+    }
   };
 
   return (
@@ -118,32 +128,21 @@ export default function Sidebar({ onToggle }: SidebarProps) {
     >
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;500;600;700&display=swap');
-        
-        .lao-font {
-            font-family: 'Noto Sans Lao', sans-serif;
-        }
-        
-        /* Custom scrollbar */
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 6px;
-        }
-        
+        .lao-font { font-family: 'Noto Sans Lao', sans-serif; }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track {
           background: rgba(239, 51, 40, 0.1);
           border-radius: 10px;
         }
-        
         .custom-scrollbar::-webkit-scrollbar-thumb {
           background: #EF3328;
           border-radius: 10px;
         }
-        
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #d62a20;
-        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #d62a20; }
       `}</style>
 
-      {/* Header with Toggle */}
+      {/* Header */}
       <div className="p-4 flex items-center justify-between border-b border-[#454350]/30">
         <button
           className="p-2 rounded-xl hover:bg-[#EF3328]/20 transition-all duration-300 hover:scale-110 active:scale-95"
@@ -160,26 +159,27 @@ export default function Sidebar({ onToggle }: SidebarProps) {
         )}
       </div>
 
-      {/* User Info Section */}
+      {/* User Info */}
       <div className="p-4 border-b border-[#454350]/30">
         <div className="flex items-center space-x-3">
           <div className="relative">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#EF3328] to-[#d62a20] flex items-center justify-center shadow-lg">
               <User size={20} className="text-white" />
             </div>
-            {userRole === "admin" && (
+
+            {/* ✅ ADMIN badge */}
+            {isAdmin && (
               <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-[#EF3328] rounded-full flex items-center justify-center border-2 border-[#140F36]">
                 <ShieldCheck size={12} className="text-white" />
               </div>
             )}
           </div>
+
           {isOpen && (
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-white truncate lao-font">
-                {username}
-              </p>
-              <p className="text-xs text-[#454350] capitalize lao-font">
-                {userRole === "admin" ? "ຜູ້ເບິ່ງແຍງລະບົບ" : userRole === "manager" ? "ຜູ້ຈັດການ" : "ຜູ້ໃຊ້"}
+              <p className="text-sm font-semibold text-white truncate lao-font">{username}</p>
+              <p className="text-xs text-[#454350] lao-font">
+                {isAdmin ? "ຜູ້ເບິ່ງແຍງລະບົບ" : "ພະນັກງານ"}
               </p>
             </div>
           )}
@@ -196,16 +196,22 @@ export default function Sidebar({ onToggle }: SidebarProps) {
           isActive={location.pathname === "/mainscreen"}
         />
 
-        {/* Customer Chat */}
         <SidebarLink
-          to="/customer-chat"
+          to="/AdminChat"
           icon={<MessageSquare size={22} />}
-          text="ສົນທະນາກັບລູກຄ້າ"
+          text="ສົນທະນາ"
           isOpen={isOpen}
-          isActive={location.pathname === "/customer-chat"}
+          isActive={location.pathname === "/AdminChat"}
         />
+        <SidebarLink
+          to="/reports/log-web-mmoney"
+          icon={<Book size={22} />}
+          text="ລາຍງານ"
+          isOpen={isOpen}
+          isActive={location.pathname === "/reports/log-web-mmoney"}
+        />
+        
 
-        {/* Data Packages */}
         <SidebarLink
           to="/data-packages"
           icon={<Package size={22} />}
@@ -214,64 +220,60 @@ export default function Sidebar({ onToggle }: SidebarProps) {
           isActive={location.pathname === "/data-packages"}
         />
 
-        {/* Promotions/Advertisement Banner */}
+        {/* ✅ ADMIN ONLY */}
         <SidebarLink
           to="/promotions"
           icon={<Tag size={22} />}
           text="ໂປຣໂມຊັ່ນ"
           isOpen={isOpen}
           isActive={location.pathname === "/promotions"}
+          roles={["ADMIN"]}
+          userRole={userRole}
         />
+         <SidebarLink
+          to="/MenusPage"
+          icon={<Menu size={22} />}
+          text="ຈັດການເມນູ"
+          isOpen={isOpen}
+          isActive={location.pathname === "/MenusPage"}
+          roles={["ADMIN"]}
+          userRole={userRole}
+        />
+
+        {/* ✅ ADMIN ONLY */}
         <SidebarLink
           to="/update-banner"
           icon={<Upload size={22} />}
           text="ອັບເດດແບນເນີ"
           isOpen={isOpen}
-          isActive={location.pathname === "/promotions/update-banner"}
+          isActive={location.pathname === "/update-banner"}
+          roles={["ADMIN"]}
+          userRole={userRole}
         />
 
-        {/* Management Dropdown - Admin Only */}
-        {userRole === "admin" && (
-          <div className="relative">
-            <button
-              className={`flex items-center justify-between w-full p-3 rounded-xl transition-all duration-300 ${
-                isManagementOpen || location.pathname.startsWith("/manage/")
-                  ? "bg-[#EF3328]/20 shadow-lg scale-105"
-                  : "hover:bg-[#454350]/20"
-              } group`}
-              onClick={() => setIsManagementOpen(!isManagementOpen)}
-            >
-              <div className="flex items-center space-x-3">
-                <User size={22} className="group-hover:scale-110 transition-transform text-white" />
-                {isOpen && <span className="text-sm font-medium lao-font text-white">ຈັດການ</span>}
-              </div>
-              {isOpen && (
-                <span className="transition-transform duration-300 text-white">
-                  {isManagementOpen ? (
-                    <ChevronUp size={18} />
-                  ) : (
-                    <ChevronDown size={18} />
-                  )}
-                </span>
-              )}
-            </button>
+        {/* ✅ ADMIN ONLY */}
+        <SidebarLink
+          to="/update-news"
+          icon={<Newspaper size={22} />}
+          text="ອັບເດດຂ່າວ"
+          isOpen={isOpen}
+          isActive={location.pathname === "/update-news"}
+          roles={["ADMIN"]}
+          userRole={userRole}
+        />
+       <SidebarLink
+          to="/admin/RealtimeMonitor"
+          icon={<MonitorCheck size={22} />}
+          text="Monitoring ລະບົບ"
+           isOpen={isOpen}
+           isActive={location.pathname === "/admin/RealtimeMonitor"}
+           roles={["ADMIN"]}
+           userRole={userRole}
+          />
 
-            {isManagementOpen && isOpen && (
-              <div className="ml-4 pl-4 border-l-2 border-[#EF3328]/30 space-y-1 mt-2">
-                <SidebarLink
-                  to="/manage/users"
-                  icon={<User size={20} />}
-                  text="ຜູ້ໃຊ້"
-                  isOpen={isOpen}
-                  isSubItem
-                  isActive={location.pathname === "/manage/users"}
-                />
-              </div>
-            )}
-          </div>
-        )}
+        
+        
 
-        {/* Mobile Top-up */}
         <SidebarLink
           to="/mobile-topup"
           icon={<Smartphone size={22} />}
@@ -280,7 +282,6 @@ export default function Sidebar({ onToggle }: SidebarProps) {
           isActive={location.pathname === "/mobile-topup"}
         />
 
-        {/* E-SIM Service */}
         <SidebarLink
           to="/esim-service"
           icon={<Wifi size={22} />}
@@ -289,7 +290,6 @@ export default function Sidebar({ onToggle }: SidebarProps) {
           isActive={location.pathname === "/esim-service"}
         />
 
-        {/* Data Roaming */}
         <SidebarLink
           to="/data-roaming"
           icon={<Globe size={22} />}
@@ -298,7 +298,7 @@ export default function Sidebar({ onToggle }: SidebarProps) {
           isActive={location.pathname === "/data-roaming"}
         />
 
-        {/* FTTH Management Dropdown */}
+        {/* FTTH Dropdown (visible for both) */}
         <div className="relative">
           <button
             className={`flex items-center justify-between w-full p-3 rounded-xl transition-all duration-300 ${
@@ -314,11 +314,7 @@ export default function Sidebar({ onToggle }: SidebarProps) {
             </div>
             {isOpen && (
               <span className="transition-transform duration-300 text-white">
-                {isFTTHOpen ? (
-                  <ChevronUp size={18} />
-                ) : (
-                  <ChevronDown size={18} />
-                )}
+                {isFTTHOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
               </span>
             )}
           </button>
@@ -361,6 +357,8 @@ export default function Sidebar({ onToggle }: SidebarProps) {
           )}
         </div>
 
+        {/* Digital + Bill are visible for both roles.
+            If you want ADMIN-only, just wrap them with: {isAdmin && (...)} */}
         {/* Digital Entertainment Dropdown */}
         <div className="relative">
           <button
@@ -377,11 +375,7 @@ export default function Sidebar({ onToggle }: SidebarProps) {
             </div>
             {isOpen && (
               <span className="transition-transform duration-300 text-white">
-                {isDigitalEntertainmentOpen ? (
-                  <ChevronUp size={18} />
-                ) : (
-                  <ChevronDown size={18} />
-                )}
+                {isDigitalEntertainmentOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
               </span>
             )}
           </button>
@@ -440,11 +434,7 @@ export default function Sidebar({ onToggle }: SidebarProps) {
             </div>
             {isOpen && (
               <span className="transition-transform duration-300 text-white">
-                {isBillPaymentsOpen ? (
-                  <ChevronUp size={18} />
-                ) : (
-                  <ChevronDown size={18} />
-                )}
+                {isBillPaymentsOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
               </span>
             )}
           </button>
@@ -457,7 +447,7 @@ export default function Sidebar({ onToggle }: SidebarProps) {
                 text="ໄຟຟ້າ"
                 isOpen={isOpen}
                 isSubItem
-                isActive={location.pathname === "/bill-payments/electricity"}
+                isActive={location.pathname === "/bill/electricity"}
               />
               <SidebarLink
                 to="/bill-payments/leasing"
@@ -496,7 +486,7 @@ export default function Sidebar({ onToggle }: SidebarProps) {
         </div>
       </nav>
 
-      {/* Logout Section */}
+      {/* Logout */}
       <div className="p-4 border-t border-[#454350]/30">
         <button
           onClick={handleLogout}
@@ -516,6 +506,8 @@ export default function Sidebar({ onToggle }: SidebarProps) {
   );
 }
 
+/* ---------------- SidebarLink ---------------- */
+
 type SidebarLinkProps = {
   to: string;
   icon: React.ReactNode;
@@ -523,6 +515,12 @@ type SidebarLinkProps = {
   isOpen: boolean;
   isSubItem?: boolean;
   isActive?: boolean;
+
+  // ✅ OPTIONAL: if provided -> only show for these roles
+  roles?: UserRole[];
+
+  // ✅ OPTIONAL: current role (needed only if roles is used)
+  userRole?: UserRole;
 };
 
 function SidebarLink({
@@ -532,7 +530,15 @@ function SidebarLink({
   isOpen,
   isSubItem,
   isActive,
+  roles,
+  userRole,
 }: SidebarLinkProps) {
+  // ✅ hide if roles provided and userRole not allowed
+  if (roles && roles.length > 0) {
+    const current = userRole || "EMPLOYEE";
+    if (!roles.includes(current)) return null;
+  }
+
   return (
     <Link
       to={to}
@@ -542,12 +548,11 @@ function SidebarLink({
           : "hover:bg-[#454350]/20 hover:translate-x-1"
       } ${isSubItem ? "text-sm" : ""}`}
     >
-      {/* Hover Effect Background */}
       <div
         className={`absolute inset-0 bg-gradient-to-r from-[#EF3328]/0 via-[#EF3328]/20 to-[#EF3328]/0 ${
           isActive ? "opacity-100" : "opacity-0"
         } group-hover:opacity-100 transition-opacity duration-300`}
-      ></div>
+      />
 
       <span
         className={`relative z-10 transition-transform duration-300 text-white ${
@@ -556,6 +561,7 @@ function SidebarLink({
       >
         {icon}
       </span>
+
       {isOpen && (
         <span
           className={`relative z-10 text-sm ml-3 font-medium whitespace-nowrap overflow-hidden text-ellipsis transition-colors lao-font ${
@@ -566,12 +572,11 @@ function SidebarLink({
         </span>
       )}
 
-      {/* Active Indicator */}
       <div
         className={`absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-[#EF3328] rounded-r-full transition-opacity duration-300 ${
           isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"
         }`}
-      ></div>
+      />
     </Link>
   );
 }

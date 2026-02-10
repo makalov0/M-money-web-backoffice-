@@ -7,8 +7,7 @@ import Login from "./pages/auth/LoginPage";
 import MainPage from "./pages/mainscreen";
 import DataPackages from "./pages/data-packages";
 import MobileTopup from "./pages/mobile-topup";
-import CustomerChat from ".//pages/customer-chat";
-import Permission from "./pages/auth/Permission";
+
 import PromotionsManagement from "./pages/promotions";
 import UpdateBanner from "./pages/update-banner";
 import ESIMService from "./pages/esim-service";
@@ -19,142 +18,173 @@ import FTTHPayment from "./pages/ftth/payment";
 import FailedPayments from "./pages/ftth/failed-payment";
 import FTTHReservation from "./pages/ftth/reservation";
 import ElectricityBillPayment from "./pages/bill/electricity";
+import HotNewsUpdate from "./pages/update-news";
+import RealtimeMonitor from "./pages/admin/RealtimeMonitor";
+import AdminChat from "./pages/AdminChat";
+import Permission from "./pages/auth/Permission";
+import { ProtectedRoute, LoginGate, isAuthenticated } from "./components/AuthRoutes";
+import MenusPage from "./pages/MenusPage";
+import Report from "./pages/report";
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <BrowserRouter>
       <Routes>
-        {/* Redirect root to login */}
-        <Route 
-          path="/" 
-          element={<Navigate to="/login" replace />} 
-        />
-        
-        {/* Auth Routes */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/mainscreen" element={<MainPage />} />
-        
-        {/* Data Packages */}
+        {/* Root */}
         <Route
-          path="/data-packages"
+          path="/"
+          element={<Navigate to={isAuthenticated() ? "/mainscreen" : "/login"} replace />}
+        />
+
+        {/* Login */}
+        <Route
+          path="/login"
           element={
-            <Permission allowedRoles={["admin", "manager", "user"]}>
+            <LoginGate>
+              <Login />
+            </LoginGate>
+          }
+        />
+
+        {/* Pages (layout handled inside page) */}
+        <Route path="/mainscreen" element={<ProtectedRoute><MainPage /></ProtectedRoute>} />
+
+        <Route path="/data-packages" element={
+          <ProtectedRoute>
+            <Permission allowedRoles={["ADMIN", "EMPLOYEE"]}>
               <DataPackages />
             </Permission>
-          }
-        />
-        
-        {/* Mobile Top-up */}
-        <Route
-          path="/mobile-topup"
-          element={
-            <Permission allowedRoles={["admin", "manager", "user"]}>
+          </ProtectedRoute>
+        } />
+        <Route path="/reports/log-web-mmoney" element={
+            <ProtectedRoute>
+            <Permission allowedRoles={["ADMIN", "EMPLOYEE"]}>
+             <Report />
+            </Permission>
+           </ProtectedRoute>
+        }/>
+
+        <Route path="/mobile-topup" element={
+          <ProtectedRoute>
+            <Permission allowedRoles={["ADMIN", "EMPLOYEE"]}>
               <MobileTopup />
             </Permission>
-          }
-        />
-        
-        {/* Promotions Management */}
-        <Route
-          path="/promotions"
-          element={
-            <Permission allowedRoles={["admin", "manager"]}>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/promotions" element={
+          <ProtectedRoute>
+            <Permission allowedRoles={["ADMIN", "EMPLOYEE"]}>
               <PromotionsManagement />
             </Permission>
-          }
-        />
-        
-        {/* Update Banner */}
-        <Route
-          path="/update-banner"
-          element={
-            <Permission allowedRoles={["admin", "manager"]}>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/update-banner" element={
+          <ProtectedRoute>
+            <Permission allowedRoles={["ADMIN", "EMPLOYEE"]}>
               <UpdateBanner />
             </Permission>
-          }
-        />
-        
-        {/* eSIM Service */}
-        <Route
-          path="/esim-service"
-          element={
-            <Permission allowedRoles={["admin", "manager", "user"]}>
+          </ProtectedRoute>
+        } />
+        <Route path="/MenusPage" element={
+          <ProtectedRoute>
+            <Permission allowedRoles={["ADMIN"]}>
+              <MenusPage />
+            </Permission>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/update-news" element={
+          <ProtectedRoute>
+            <Permission allowedRoles={["ADMIN", "EMPLOYEE"]}>
+              <HotNewsUpdate />
+            </Permission>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/esim-service" element={
+          <ProtectedRoute>
+            <Permission allowedRoles={["ADMIN", "EMPLOYEE"]}>
               <ESIMService />
             </Permission>
-          }
-        />
-        
-        {/* Data Roaming */}
-        <Route
-          path="/data-roaming"
-          element={
-            <Permission allowedRoles={["admin", "manager", "user"]}>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/data-roaming" element={
+          <ProtectedRoute>
+            <Permission allowedRoles={["ADMIN", "EMPLOYEE"]}>
               <RoamingCustomer />
             </Permission>
-          }
-        />
-        
-        {/* FTTH Services */}
-        <Route
-          path="/ftth/services"
-          element={
-            <Permission allowedRoles={["admin", "manager", "user"]}>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/ftth/services" element={
+          <ProtectedRoute>
+            <Permission allowedRoles={["ADMIN", "EMPLOYEE"]}>
               <FTTHServices />
             </Permission>
-          }
-        />
-        <Route
-          path="/ftth/failed-payment"
-          element={
-            <Permission allowedRoles={["admin", "manager", "user"]}>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/ftth/payment" element={
+          <ProtectedRoute>
+            <Permission allowedRoles={["ADMIN", "EMPLOYEE"]}>
+              <FTTHPayment />
+            </Permission>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/ftth/failed-payment" element={
+          <ProtectedRoute>
+            <Permission allowedRoles={["ADMIN", "EMPLOYEE"]}>
               <FailedPayments />
             </Permission>
-          }
-        />
-        <Route
-          path="/ftth/payment"
-          element={
-            <Permission allowedRoles={["admin", "manager", "user"]}>
-              <FTTHPayment/>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/ftth/reservation" element={
+          <ProtectedRoute>
+            <Permission allowedRoles={["ADMIN", "EMPLOYEE"]}>
+              <FTTHReservation />
             </Permission>
-          }
-        />
-        <Route
-          path="/ftth/reservation"
-          element={
-            <Permission allowedRoles={["admin", "manager", "user"]}>
-              <FTTHReservation/>
-            </Permission>
-          }
-        />
-        {/* Ticket Management */}
-        <Route
-          path="/digital-entertainment/ticket"
-          element={
-            <Permission allowedRoles={["admin", "manager", "user"]}>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/digital-entertainment/ticket" element={
+          <ProtectedRoute>
+            <Permission allowedRoles={["ADMIN", "EMPLOYEE"]}>
               <TicketManagement />
             </Permission>
-          }
-        />
-        
-        {/* Customer Chat */}
-        <Route
-          path="/customer-chat"
-          element={
-            <Permission allowedRoles={["admin", "manager", "user"]}>
-              <CustomerChat />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/AdminChat" element={
+          <ProtectedRoute>
+            <Permission allowedRoles={["ADMIN", "EMPLOYEE"]}>
+              <AdminChat />
             </Permission>
-          }
-        />
-         {/* bill */}
-        <Route
-          path="/bill/electricity"
-          element={
-            <Permission allowedRoles={["admin", "manager", "user"]}>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/bill/electricity" element={
+          <ProtectedRoute>
+            <Permission allowedRoles={["ADMIN", "EMPLOYEE"]}>
               <ElectricityBillPayment />
             </Permission>
-          }
-        />
-        
+          </ProtectedRoute>
+        } />
+
+        {/* Admin */}
+        <Route path="/admin/RealtimeMonitor" element={
+          <ProtectedRoute>
+            <Permission allowedRoles={["ADMIN"]}>
+              <RealtimeMonitor />
+            </Permission>
+          </ProtectedRoute>
+        } />
+
+        {/* 404 */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   </React.StrictMode>
